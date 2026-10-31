@@ -174,7 +174,7 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
         except Exception as e:
             state.log(step, site, act.as_dict(), f"err:{e}", shot, llm.last_ms, llm.last_route)
             history.append(f"{scr.path}|err:{target['label']}")
-        page.wait_for_timeout(250)
+        page.wait_for_timeout(int(os.getenv("STEP_PAUSE_MS", "250")))
 
     state.set_current(site, action, step, result)
     if result == "done":
@@ -206,6 +206,8 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--provider", default=os.getenv("LLM_PROVIDER", "mock"))
     ap.add_argument("--headful", action="store_true", help="브라우저 창 표시(데모)")
+    ap.add_argument("--record", metavar="DIR",
+                    help="에이전트 브라우저 화면을 webm 으로 녹화 (데모 영상용)")
     ap.add_argument("--no-confirm", action="store_true",
                     help="최종 제출 전 승인 대기를 생략 (자동 테스트용)")
     args = ap.parse_args()
@@ -225,11 +227,17 @@ def main():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.headful)
-        page = browser.new_page(viewport={"width": 720, "height": 460})
+        ctx_kw = {"viewport": {"width": 720, "height": 460}}
+        if args.record:
+            ctx_kw |= {"record_video_dir": args.record,
+                       "record_video_size": {"width": 720, "height": 460}}
+        context = browser.new_context(**ctx_kw)
+        page = context.new_page()
         attach_network_monitor(page, state)
         for t in targets:
             run_site(page, llm, state, t["site"], t["url"], t["action"],
                      confirm=not args.no_confirm)
+        context.close()
         browser.close()
 
     state.flush()
