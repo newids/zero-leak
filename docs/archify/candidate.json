@@ -1,0 +1,317 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Z-LAS 서비스 아키텍처 — 분리 실행",
+    "output": "docs/archify/zlas-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "ko"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "사용자",
+      "sublabel": "승인 탭 · 2차 인증",
+      "icon": "person",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        130,
+        64
+      ]
+    },
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "Z-LAS 앱",
+      "sublabel": "iOS · Android · 데스크톱",
+      "pos": [
+        260,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "로컬 에이전트",
+      "sublabel": "브라우저 조작 · 마스킹",
+      "pos": [
+        490,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "손"
+    },
+    {
+      "id": "vault",
+      "type": "database",
+      "label": "키체인 볼트",
+      "sublabel": "비밀번호 평문 · 해시",
+      "pos": [
+        490,
+        320
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "평문은 여기만"
+    },
+    {
+      "id": "site",
+      "type": "external",
+      "label": "대상 사이트",
+      "sublabel": "쇼핑몰 · 웹하드 · 포털",
+      "pos": [
+        490,
+        40
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "판단 게이트웨이",
+      "sublabel": "세션 · 가드레일 · 큐",
+      "pos": [
+        740,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "눈"
+    },
+    {
+      "id": "vlm",
+      "type": "cloud",
+      "label": "VLM 추론",
+      "sublabel": "A100 vLLM · Qwen2.5-VL",
+      "pos": [
+        980,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "1차 판단"
+    },
+    {
+      "id": "claude",
+      "type": "external",
+      "label": "Claude API",
+      "sublabel": "승격 · 2차 검증",
+      "pos": [
+        740,
+        40
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "hashdb",
+      "type": "database",
+      "label": "해시 대조 DB",
+      "sublabel": "SHA-256 앞 5자리",
+      "pos": [
+        740,
+        320
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "k-익명성"
+    },
+    {
+      "id": "collector",
+      "type": "backend",
+      "label": "유출 수집기",
+      "sublabel": "덤프 파싱 · 해시화",
+      "pos": [
+        980,
+        320
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "feeds",
+      "type": "external",
+      "label": "유출 피드",
+      "sublabel": "텔레그램 · HIBP · 랜섬웨어",
+      "pos": [
+        980,
+        460
+      ],
+      "size": [
+        150,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "사용자 기기 — 평문 보관·입력",
+      "wraps": [
+        "app",
+        "agent",
+        "vault"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "네이버클라우드 — 가려진 화면만 받음",
+      "wraps": [
+        "gateway",
+        "vlm",
+        "hashdb",
+        "collector"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "user-app",
+      "from": "user",
+      "to": "app",
+      "label": "승인 탭",
+      "variant": "emphasis"
+    },
+    {
+      "id": "app-agent",
+      "from": "app",
+      "to": "agent",
+      "label": "조치 시작",
+      "variant": "emphasis"
+    },
+    {
+      "id": "agent-site",
+      "from": "agent",
+      "to": "site",
+      "label": "사용자 IP로 HTTPS",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "agent-vault",
+      "from": "agent",
+      "to": "vault",
+      "label": "평문 읽기 · 쓰기",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "agent-gateway",
+      "from": "agent",
+      "to": "gateway",
+      "label": "마스킹 화면",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gateway-agent",
+      "from": "gateway",
+      "to": "agent",
+      "label": "액션 JSON",
+      "variant": "default"
+    },
+    {
+      "id": "gateway-vlm",
+      "from": "gateway",
+      "to": "vlm",
+      "label": "1차 판단"
+    },
+    {
+      "id": "gateway-claude",
+      "from": "gateway",
+      "to": "claude",
+      "label": "승격 · 2차 검증",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "hashdb-gateway",
+      "from": "hashdb",
+      "to": "gateway",
+      "label": "위험 사이트",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "collector-hashdb",
+      "from": "collector",
+      "to": "hashdb",
+      "label": "해시만 저장"
+    },
+    {
+      "id": "feeds-collector",
+      "from": "feeds",
+      "to": "collector",
+      "label": "유출 덤프",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "분리 실행",
+      "items": [
+        "기기: 비밀번호 보관·입력, 사이트 접속(사용자 IP·세션)",
+        "클라우드: 가려진 화면과 번호만 보고 좌표 JSON 반환",
+        "액션은 click · fill · handoff · done 네 가지뿐"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "탐지",
+      "items": [
+        "유출 덤프는 SHA-256 해시로만 저장",
+        "앱은 해시 앞 5자리만 보내 후보를 받고, 전체 비교는 기기에서",
+        "변형 패턴(특수문자·연도·한영)은 기기에서 생성·대조"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "승인과 가드레일",
+      "items": [
+        "캡차·2FA·최종 제출 직전은 사용자가 앱에서 승인",
+        "결제·송금·외부 이동·유지하기는 2차 검증이 차단",
+        "승인 요청은 푸시 알림으로 앱에 전달"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "확장(2단계)",
+      "items": [
+        "같은 A100에서 QLoRA 파인튜닝, 화면 16개 병렬",
+        "Passkey 전환, 패스워드 매니저 연동",
+        "기업용: 임직원 계정 일괄 격리"
+      ]
+    }
+  ]
+}

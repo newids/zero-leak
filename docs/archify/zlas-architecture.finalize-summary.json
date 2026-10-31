@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/claude/zlas/docs/archify/candidate.json",
+    "sha256": "c2f2d288e4dd682162467a8dca1580d02d9ab9c678241305ed51cc86890ecca4",
+    "bytes": 4793
+  },
+  "artifact": {
+    "path": "/home/claude/zlas/docs/archify/zlas-architecture.html",
+    "sha256": "bf7b87171ba556bf4e45dce783edb2f0611ecb24b2ed513f0bb46fd6dea91bc7",
+    "bytes": 858282
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/claude/zlas/docs/archify/zlas-architecture.finalize.json",
+    "summaryReceipt": "/home/claude/zlas/docs/archify/zlas-architecture.finalize-summary.json",
+    "browserCheckReceipt": "/home/claude/zlas/docs/archify/zlas-architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 9495,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "layoutReviewRecommendation": {
+    "action": "inspect-leading-space",
+    "evidence": {
+      "measured": true,
+      "emptyTopPx": 180,
+      "emptyTopRatio": 0.246,
+      "occupiedTop": 180,
+      "viewBoxTop": 0,
+      "canvasHeight": 732,
+      "typicalNodeHeight": 64,
+      "reviewSuggested": true
+    },
+    "reason": "Measured content, including routes and labels, leaves a large empty area above the diagram. This is a composition suggestion, not a failed gate.",
+    "repair": "Check whether that leading space is intentional. If not, reposition the connected scene nearer the canvas origin while retaining room for its actual boundaries, labels and return routes. Preserve all meaning and user-fixed geometry, then rerun finalize. No screenshot is required."
+  }
+}
