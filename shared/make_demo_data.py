@@ -6,9 +6,9 @@ here = pathlib.Path(__file__).parent
 
 vault = [
     {"site": "데모쇼핑",  "url": "http://localhost:5001/shop",
-     "email": "demo1@zlas.kr", "password": "Test1234!"},
+     "email": "demo1@zlas.kr", "password": "Test1234!", "dormant_days": 3},
     {"site": "데모웹하드", "url": "http://localhost:5001/webhard",
-     "email": "demo1@zlas.kr", "password": "Test1234@"},
+     "email": "demo1@zlas.kr", "password": "Test1234@", "dormant_days": 1100},
 ]
 
 def sha(p):  # 평문 → SHA-256 hex

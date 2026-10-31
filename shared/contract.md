@@ -30,11 +30,12 @@ leak.json ──► detect.py ──► risk.json ──► agent.py ──► s
 
 사용자가 어느 사이트에 어떤 비밀번호를 썼는지. 평문은 데모 편의를 위해서만 두고,
 실제 서비스에서는 로컬 기기 볼트에만 존재한다. 데모 비밀번호는 전부 가짜.
+`dormant_days`(선택): 마지막 사용 후 경과일. 365 이상이면 detect.py 가 변형 일치 사이트를 `withdraw` 로 판정한다.
 
 ```json
 [
   { "site": "데모쇼핑", "url": "http://localhost:5001/shop", "email": "demo1@zlas.kr", "password": "Test1234!" },
-  { "site": "데모웹하드", "url": "http://localhost:5001/webhard", "email": "demo1@zlas.kr", "password": "Test1234@" }
+  { "site": "데모웹하드", "url": "http://localhost:5001/webhard", "email": "demo1@zlas.kr", "password": "Test1234@", "dormant_days": 1100 }
 ]
 ```
 
@@ -63,9 +64,10 @@ leak.json ──► detect.py ──► risk.json ──► agent.py ──► s
   "current": { "site": "데모쇼핑", "action": "change", "step": 4, "status": "running" },
   "steps": [
     { "n": 1, "site": "데모쇼핑", "action_json": {"tool":"click","n":3}, "status": "ok",
-      "shot": "shots/데모쇼핑_step_01.png", "vlm_ms": 540, "ts": "..." }
+      "shot": "shots/데모쇼핑_step_01.png", "vlm_ms": 540, "route": "vllm", "ts": "..." }
   ],
-  "summary": { "sites": 2, "changed": 1, "withdrawn": 1, "elapsed_s": 0, "plaintext_sent": 0 }
+  "summary": { "sites": 2, "changed": 1, "withdrawn": 1, "elapsed_s": 0, "plaintext_sent": 0, "outbound_checked": 0 },
+  "leaks": []
 }
 ```
 

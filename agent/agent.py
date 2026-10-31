@@ -34,6 +34,8 @@ MAX_STEPS = 12
 APPROVE_TIMEOUT = int(os.getenv("APPROVE_TIMEOUT", "30"))   # 승인 대기 최대 초
 HANDOFF_POLL = 0.5
 TESTBED_HOSTS = {"localhost", "127.0.0.1"}
+# 최종 제출 버튼 앞에서 사람 승인을 받는다 (데모: "변경 직전에 멈추고 [변경 확정]").
+CONFIRM_WORDS = ["변경하기", "회원 탈퇴", "탈퇴하기", "저장", "제출"]
 
 # 데모용 입력 값 (실제 비밀번호 아님). 실제 서비스에서는 OS 키체인에서 읽는다.
 FIELD_VALUES = {
@@ -112,18 +114,21 @@ def wait_for_approval(site: str) -> bool:
     return False
 
 
-def run_site(page, llm: LLM, state: State, site: str, url: str, action: str) -> str:
+def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
+             confirm: bool = True) -> str:
     print(f"\n▶ {site} ({action}) — {url}")
     page.goto(url, wait_until="networkidle")
     history: list[str] = []          # "<path>|<label>"
     result = "incomplete"
     step = 0
+    confirmed = False                # 이 사이트의 최종 제출을 승인받았는가
 
     for step in range(1, MAX_STEPS + 1):
         page.wait_for_timeout(200)
         scr = Screen.from_js(page.evaluate(SOM_JS))
         shot = f"shots/{site}_step_{step:02d}.png"
-        page.screenshot(path=str(ROOT / shot))
+        h = page.evaluate("Math.min(460, Math.max(220, document.body.scrollHeight + 24))")
+        page.screenshot(path=str(ROOT / shot), clip={"x": 0, "y": 0, "width": 720, "height": h})
 
         act = llm.decide(action, scr, history, img_path=str(ROOT / shot))
         state.set_current(site, action, step, "running")
@@ -148,6 +153,16 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str) -> 
             state.log(step, site, act.as_dict(), "bad_n", shot, llm.last_ms, llm.last_route)
             history.append(f"{scr.path}|bad_n:{act.n}")
             continue
+
+        # 최종 제출 버튼이면 먼저 사람 승인 (핸드오프)
+        if confirm and not confirmed and act.tool == "click" and target["kind"] == "button" \
+                and any(w in target["label"] for w in CONFIRM_WORDS):
+            ask = {"tool": "handoff", "reason": f"'{target['label']}' 최종 확정 전 승인 필요"}
+            state.log(step, site, ask, "handoff", shot, llm.last_ms, llm.last_route)
+            if not wait_for_approval(site):
+                result = "handoff_timeout"
+                break
+            confirmed = True
 
         try:
             page.mouse.click(target["x"], target["y"])
@@ -191,6 +206,8 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--provider", default=os.getenv("LLM_PROVIDER", "mock"))
     ap.add_argument("--headful", action="store_true", help="브라우저 창 표시(데모)")
+    ap.add_argument("--no-confirm", action="store_true",
+                    help="최종 제출 전 승인 대기를 생략 (자동 테스트용)")
     args = ap.parse_args()
     if not args.site and not args.all:
         ap.error("--site 또는 --all 필요")
@@ -208,10 +225,11 @@ def main():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.headful)
-        page = browser.new_page(viewport={"width": 1100, "height": 800})
+        page = browser.new_page(viewport={"width": 720, "height": 460})
         attach_network_monitor(page, state)
         for t in targets:
-            run_site(page, llm, state, t["site"], t["url"], t["action"])
+            run_site(page, llm, state, t["site"], t["url"], t["action"],
+                     confirm=not args.no_confirm)
         browser.close()
 
     state.flush()
