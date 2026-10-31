@@ -165,7 +165,9 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
             state.log(step, site, act.as_dict(), "handoff", shot, llm.last_ms, llm.last_route)
             r = wait_for_approval(site)
             if r == "approved":
-                history.append(f"{scr.path}|handoff:{act.reason}")
+                # 사유 문구는 남기지 않는다 — 남기면 모델이 다음 단계에서 그 문장을 보고 같은 이유로 또 handoff 한다.
+                # 이 표식은 llm.decide 의 반복 감지도 초기화한다 (사람이 개입해 상황이 바뀌었으므로).
+                history.append(f"{scr.path}|handoff:사람이 처리함")
                 continue
             result = "skipped" if r == "skipped" else "handoff_timeout"
             break

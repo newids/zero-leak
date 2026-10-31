@@ -26,12 +26,19 @@
     return '';
   };
 
+  let covered = 0;
   for (const el of els) {
     const r = el.getBoundingClientRect();
     if (r.width < 4 || r.height < 4) continue;
     if (r.bottom < 0 || r.top > innerHeight) continue;
     const style = getComputedStyle(el);
     if (style.visibility === 'hidden' || style.display === 'none') continue;
+    // 팝업·오버레이에 가려진 요소는 제외한다. 클릭 좌표에 실제로 놓인 요소가 자기 자신(또는 자식·부모)이 아니면
+    // 눌러도 막(overlay)에 먹힌다. 가려진 요소에 번호를 주면 모델이 헛클릭을 반복한다.
+    const cx = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2));
+    const cy = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2));
+    const hit = document.elementFromPoint(cx, cy);
+    if (hit && hit !== el && !el.contains(hit) && !hit.contains(el)) { covered++; continue; }
     n++;
 
     let kind = 'button';
@@ -83,6 +90,7 @@
 
   const headings = [...document.querySelectorAll('h1,h2,h3,.ok,[role=alert],[role=status]')]
     .map(h => (h.innerText || '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 8);
+  if (covered > 0) headings.unshift(`(팝업이 화면을 덮고 있어 ${covered}개 요소가 가려짐 — 먼저 닫아야 함)`);
 
   return { path: location.pathname, title: document.title, headings, elements: out };
 }
