@@ -221,7 +221,7 @@ __marimo__/
 
 # --- Zero-Leak
 .env
-shots/*.png
+shots/
 shared/approve.flag
 shared/skip.flag
 shared/state.json
@@ -229,3 +229,6 @@ recordings/
 docs/archify/review-*/
 docs/archify/*.finalize*.json
 docs/archify/*.browser-check.json
+
+# macOS
+.DS_Store

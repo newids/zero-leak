@@ -94,7 +94,7 @@ def _mock_decide(goal: str, scr: Screen, history: list[str]) -> Action:
 
     def seen(el): return f"{scr.path}|{el['label']}" in history
     els = [e for e in scr.elements if not seen(e)]
-    inputs = [e for e in els if e["kind"] == "input"]
+    inputs = [e for e in els if e["kind"] == "input" and "(입력됨)" not in e["label"]]   # 채운 칸은 제외
     buttons = [e for e in els if e["kind"] != "input"]
 
     # 1) 빈 입력란 먼저 채운다
@@ -136,6 +136,11 @@ def _system_prompt() -> str:
         '{"tool":"fill","n":5,"field":"new_password","confidence":0.9}  또는  '
         '{"tool":"handoff","reason":"...","confidence":0.9}  또는  {"tool":"done","confidence":0.9}\n'
         f"field 는 {'|'.join(FIELDS)} 중 하나. confidence 는 0~1.\n"
+        "'(입력됨)' 표시가 붙은 입력란은 이미 채운 것이니 다시 채우지 마라. 빈 입력란이 있으면 제출 버튼보다 먼저 채워라. "
+        "로그인 화면이면 아이디(이메일)와 비밀번호를 채우고 '로그인'부터 눌러라. "
+        "'비밀번호 재설정' '비밀번호 찾기' '아이디 찾기'는 비밀번호를 잊은 사람용이다. "
+        "목표가 변경이면 로그인한 뒤 마이페이지·회원정보·계정 정보·정보 변경·보안 메뉴로 들어가라. "
+        "'정보 변경' '회원정보 수정' '계정 정보' '보안 설정' 같은 메뉴 이동은 안전하다. "
         "'혜택을 유지하고 계속 이용하기' '조금 더 써볼게요' 같은 문구는 탈퇴를 막는 유인 버튼이다. "
         "탈퇴가 목표면 작고 흐린 '포기하고 떠나기' '그래도 탈퇴' 쪽을 골라라. "
         "캡차·본인인증·최종 결제 확인이 뜨면 handoff. "
@@ -158,9 +163,13 @@ def _user_prompt(goal: str, scr: Screen, history: list[str]) -> str:
 
 def _guardrail_prompt(action: Action, scr: Screen) -> str:
     label = next((e["label"] for e in scr.elements if e["n"] == action.n), "")
-    return ("너는 보안 검증기다. 아래 액션이 결제·송금·구매·구독·외부 사이트 이동·"
-            "동의 범위 확대·탈퇴 철회(유지하기) 중 하나로 이어지는지 판단하라. "
-            '{"allow":true} 또는 {"allow":false,"why":"..."} 로만 답하라.\n'
+    # 차단은 '문구가 분명히 위험할 때만'. 모호하면 허용한다 — 최종 제출은 어차피 사람 승인을 거치고,
+    # 금지어 규칙(guardrail_rules)이 먼저 걸러져 있다. 모호함을 전부 막으면 정상 메뉴 이동도 멈춘다.
+    return ("너는 보안 검증기다. 아래 클릭의 대상 문구가 결제·송금·구매·충전·구독·외부 사이트 이동·"
+            "마케팅 동의·탈퇴 철회(유지하기) 중 하나를 분명히 뜻할 때만 {\"allow\":false,\"why\":\"...\"} 로 답하라. "
+            "'정보 변경' '회원정보 수정' '계정 정보' '보안 설정' '비밀번호 변경' '계정 관리' 같은 메뉴 이동과 "
+            "'회원 탈퇴' '포기하고 떠나기' '그래도 탈퇴' 같은 탈퇴 진행은 허용한다. "
+            "문구가 비어 있거나 모호하면 {\"allow\":true} 다. JSON 하나로만 답하라.\n"
             f"액션: {json.dumps(action.as_dict(), ensure_ascii=False)}\n"
             f"대상 요소 문구: {label}\n페이지 제목: {scr.title}")
 
@@ -209,8 +218,8 @@ def _claude(messages_text: str, system: str, img_path: str | None, *,
     if img_path and os.path.exists(img_path):
         blocks.insert(0, {"type": "image", "source": {
             "type": "base64", "media_type": "image/png", "data": _b64(img_path)}})
-    msg = client.messages.create(model=model, max_tokens=max_tokens, temperature=0,
-                                 system=system,
+    # temperature 는 보내지 않는다 — claude-opus-4-8 등 4.6+ 모델은 이 인자를 400 으로 거부한다
+    msg = client.messages.create(model=model, max_tokens=max_tokens, system=system,
                                  messages=[{"role": "user", "content": blocks}])
     return "".join(b.text for b in msg.content if b.type == "text")
 
@@ -230,7 +239,8 @@ def guardrail_rules(action: Action, scr: Screen) -> tuple[bool, str]:
 
 # ---------------------------------------------------------------- public API
 class LLM:
-    PROMOTE_BELOW = 0.6     # vLLM 신뢰도가 이보다 낮으면 Claude 로 승격
+    PROMOTE_BELOW = float(os.getenv("PROMOTE_BELOW", "0.6"))   # 신뢰도가 이보다 낮으면 Claude 로 승격 (.env 로 조정)
+    REPEAT_LIMIT = 2        # 같은 경로에서 같은 요소를 이 횟수 이상 다뤘는데 또 고르면 막힌 것으로 본다
 
     def __init__(self, provider: str | None = None):
         self.provider = (provider or os.getenv("LLM_PROVIDER", "mock")).lower()
@@ -266,6 +276,18 @@ class LLM:
         else:
             act, self.last_route = Action("handoff", reason=f"알 수 없는 provider: {p}"), "none"
         self.last_ms = int((time.time() - t0) * 1000)
+
+        # -- 반복 감지: 확신하며 틀리는 경우(신뢰도 높음)는 승격으로 못 잡는다. 같은 동작이 반복되면 승격 또는 handoff.
+        if act.tool in ("click", "fill") and act.n is not None:
+            label = next((e["label"] for e in scr.elements if e["n"] == act.n), "")
+            if history.count(f"{scr.path}|{label}") >= self.REPEAT_LIMIT:
+                if p in ("vllm", "openai") and os.getenv("ANTHROPIC_API_KEY"):
+                    act, self.last_route = self._claude_decide(goal, scr, history, img_path), f"{p}→claude(반복)"
+                    label2 = next((e["label"] for e in scr.elements if e["n"] == act.n), "") if act.n is not None else ""
+                    if act.tool in ("click", "fill") and history.count(f"{scr.path}|{label2}") >= self.REPEAT_LIMIT:
+                        act = Action("handoff", reason=f"'{label2}' 반복 — 승격 후에도 같은 선택", confidence=0.0)
+                else:
+                    act = Action("handoff", reason=f"'{label}' 을(를) {self.REPEAT_LIMIT}번 넘게 반복", confidence=0.0)
 
         # -- 2차 가드레일: 규칙 → (키가 있으면) 모델 검증
         ok, why = guardrail_rules(act, scr)
@@ -306,8 +328,8 @@ class LLM:
             m = re.search(r"\{.*?\}", txt, re.S)
             d = json.loads(m.group(0)) if m else {"allow": True}
             return bool(d.get("allow", True)), d.get("why", "가드레일 모델 차단")
-        except Exception as e:          # 검증기 장애 시에는 규칙 결과만 신뢰
-            return True, f"(검증기 오류 무시: {e})"
+        except Exception as e:          # 검증기 장애 시에는 통과시키지 않고 사람에게 넘긴다 (fail-closed)
+            return False, f"검증기 장애로 보류: {e}"
 
 
 if __name__ == "__main__":

@@ -51,6 +51,9 @@
       label = el.innerText || el.value || el.getAttribute('aria-label') || '';
     }
     label = label.replace(/\s+/g, ' ').trim().slice(0, 40);
+    // 입력란에 값이 있으면 라벨에 표시한다. 비밀번호 칸은 캡처에서 가려져 모델이 채움 여부를 알 수 없어
+    // 같은 칸을 반복 입력하는 문제가 있었다. 값 자체는 보내지 않고 "채워짐" 사실만 알린다.
+    if (kind === 'input' && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.value) label += ' (입력됨)';
 
     if (el.tagName === 'INPUT' && el.type === 'password') {
       const m = document.createElement('div');
