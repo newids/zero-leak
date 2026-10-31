@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Z-LAS
+.env
+shots/*.png
+shared/approve.flag
+shared/state.json
+recordings/
+docs/archify/review-*/
+docs/archify/*.finalize*.json
+docs/archify/*.browser-check.json

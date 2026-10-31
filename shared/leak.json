@@ -1,0 +1,17 @@
+[
+  {
+    "email": "demo1@zlas.kr",
+    "password_sha256": "0fadf52a4580cfebb99e61162139af3d3a6403c1d36b83e4962b721d1c8cbd0b",
+    "source": "telegram-sim-2026-10"
+  },
+  {
+    "email": "someone@other.kr",
+    "password_sha256": "6f5917a3327e3c9daf293d78429a35e16cc0fcbf63f6cf2289cb7d52f5c2e35a",
+    "source": "telegram-sim-2026-10"
+  },
+  {
+    "email": "noise@x.kr",
+    "password_sha256": "d0ae2db8fd778accea1da54b6e6fe1f4214277b39ed07df66ef1144ed2e1e12e",
+    "source": "paste-dump"
+  }
+]

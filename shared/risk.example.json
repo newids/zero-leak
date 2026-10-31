@@ -1,0 +1,10 @@
+[
+  {
+    "site": "데모쇼핑",
+    "url": "http://localhost:5001/shop",
+    "email": "demo1@zlas.kr",
+    "risk": "critical",
+    "reason": "유출 비밀번호와 정확히 일치",
+    "action": "change"
+  }
+]
