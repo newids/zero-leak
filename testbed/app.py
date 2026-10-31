@@ -55,7 +55,10 @@ def shop_account():
 
 @app.route("/shop/pw")
 def shop_pw():
-    return pg("비밀번호 변경", """
+    # 빈 폼을 제출하면 여기로 되돌아온다. role=alert 는 som.js 가 헤딩으로 읽어 모델에 전달한다.
+    err = ('<p role=alert style="color:#c00">현재 비밀번호와 새 비밀번호를 모두 입력하세요.</p>'
+           if request.args.get("err") else "")
+    return pg("비밀번호 변경", err + """
       <form action="/shop/pw/done" method=get>
       <label>현재 비밀번호</label><input type=password name=cur>
       <label>새 비밀번호</label><input type=password name=new>
@@ -63,6 +66,9 @@ def shop_pw():
 
 @app.route("/shop/pw/done")
 def shop_done():
+    # 실제 사이트처럼 빈 비밀번호는 거부한다. 입력을 건너뛰고 제출해도 '완료'가 뜨는 가짜 성공을 막는다.
+    if not request.args.get("cur") or not request.args.get("new"):
+        return redirect("/shop/pw?err=1")
     return pg("완료", '<p class=ok>비밀번호 변경 완료</p>')
 
 
