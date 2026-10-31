@@ -91,7 +91,7 @@
   // 제목과 함께 오류·성공 안내 문구도 읽는다. 실제 사이트는 완료 페이지 없이 같은 폼에 머물며
   // "현재 비밀번호와 일치하지 않습니다" / "변경되었습니다" 같은 문구만 바꾸는 경우가 많다.
   const headings = [...document.querySelectorAll(
-      'h1,h2,h3,.ok,[role=alert],[role=status],[class*="error" i],[class*="invalid" i],[class*="success" i],[class*="complete" i]')]
+      'h1,h2,h3,.ok,[role=alert],[role=status],[class*="error" i],[class*="valid" i],[class*="success" i],[class*="complete" i]')]
     .map(h => (h.innerText || '').replace(/\s+/g, ' ').trim()).filter(t => t && t.length <= 80)
     .filter((t, i, a) => a.indexOf(t) === i).slice(0, 10);
   if (covered > 0) headings.unshift(`(팝업이 화면을 덮고 있어 ${covered}개 요소가 가려짐 — 먼저 닫아야 함)`);

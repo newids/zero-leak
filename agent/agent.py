@@ -106,9 +106,20 @@ class State:
         self.path.write_text(json.dumps(self.data, ensure_ascii=False, indent=2))
 
 
+SUBMIT_RESPONSES: list[dict] = []   # 제출 판정용: 조작 대상 사이트로 간 비-GET 요청의 응답 (상태 코드·경로만, 본문은 보지 않음)
+
+
 def attach_network_monitor(page, state: State):
-    """브라우저가 테스트베드 밖으로 비밀번호를 보내는지 감시."""
+    """브라우저가 테스트베드 밖으로 비밀번호를 보내는지 감시 + 제출 응답 기록."""
     secrets = [v for k, v in FIELD_VALUES.items() if "password" in k]
+    def on_response(resp):
+        req = resp.request
+        host = urlparse(req.url).hostname or ""
+        if req.method in ("POST", "PUT", "PATCH") and (
+                host in ALLOWED_HOSTS or any(host.endswith("." + h) for h in ALLOWED_HOSTS)):
+            SUBMIT_RESPONSES.append({"t": time.time(), "method": req.method,
+                                     "path": urlparse(req.url).path, "status": resp.status})
+    page.on("response", on_response)
     def on_request(req):
         host = urlparse(req.url).hostname or ""
         # 조작 대상 사이트 자신(하위 도메인 포함: account.example.com)에게 비밀번호를 보내는 건 정상 (로그인·변경 폼)
@@ -187,6 +198,7 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
     result = "incomplete"
     step = 0
     submitted_path = None            # 최종 제출을 누른 경로. 같은 화면에 머물면 완료/오류를 규칙으로 판정한다
+    submitted_at = 0.0               # 제출 클릭 시각. 그 뒤의 서버 응답만 판정에 쓴다
 
     for step in range(1, MAX_STEPS + 1):
         page.wait_for_timeout(200)
@@ -195,12 +207,20 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
 
         if submitted_path and scr.path == submitted_path:
             # 제출 뒤에도 같은 화면: 완료 페이지가 없는 사이트(리디북스 등). 다시 입력·재제출은 절대 하지 않는다.
+            # 판정 순서: 완료 문구 → 오류 문구 → 서버 응답(제출 뒤 비-GET 요청의 상태 코드) → 입력란 초기화 → 사람 확인
             errs = [h for h in scr.headings if any(w in h for w in ERROR_WORDS)]
             pw = password_inputs(scr, empty_only=False)
+            resps = [r for r in SUBMIT_RESPONSES if r["t"] >= submitted_at]
+            ok2xx = [r for r in resps if 200 <= r["status"] < 300]
+            bad4xx = [r for r in resps if r["status"] >= 400]
             if scr.is_done():
                 act, llm.last_route = Action("done", confidence=1.0), "rule:완료 문구"
             elif errs:
                 act, llm.last_route = Action("handoff", reason=f"제출 후 오류 표시: {errs[0][:60]}", confidence=0.0), "rule:제출 후 오류"
+            elif bad4xx and not ok2xx:
+                act, llm.last_route = Action("handoff", reason=f"제출 응답 {bad4xx[0]['status']} {bad4xx[0]['path'][:40]}", confidence=0.0), "rule:서버 응답 오류"
+            elif ok2xx:
+                act, llm.last_route = Action("done", reason=f"제출 응답 {ok2xx[0]['status']} {ok2xx[0]['method']} {ok2xx[0]['path'][:40]}", confidence=0.95), "rule:서버 응답 2xx"
             elif pw and all("(입력됨)" not in e["label"] for e in pw):
                 act, llm.last_route = Action("done", reason="제출 후 입력란 초기화", confidence=0.9), "rule:폼 초기화"
             else:
@@ -264,7 +284,9 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
                 page.keyboard.press("Control+A")
                 page.keyboard.type(FIELD_VALUES.get(act.field, ""), delay=5)
             elif is_submit(target):
-                submitted_path = scr.path
+                submitted_path, submitted_at = scr.path, time.time()
+                settle(page)                           # 제출 요청의 응답이 돌아올 시간을 준다
+                page.wait_for_timeout(800)
             history.append(f"{scr.path}|{target['label']}")
             state.log(step, site, act.as_dict(), "ok", shot, llm.last_ms, llm.last_route)
         except Exception as e:
