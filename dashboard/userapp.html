@@ -53,6 +53,8 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
 .btn-guard{background:var(--guard);color:#fff;box-shadow:0 10px 26px rgba(14,124,107,.32)}
 .btn-ghost{background:transparent;color:var(--ink-2);font-weight:600;font-size:15px;padding:13px}
 .btn[disabled]{opacity:.45;cursor:default}
+.btn-outline{background:var(--card);color:var(--ink);border:1.5px solid var(--ink);padding:15px;font-size:16px}
+.btn-outline::before{content:"▶";font-size:11px;margin-right:8px;vertical-align:1px;color:var(--guard)}
 
 .tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--tab);background:rgba(255,255,255,.92);backdrop-filter:blur(16px);
   border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:flex-start;padding:10px 8px 0;font-size:11px;color:var(--ink-3);z-index:3}
@@ -95,6 +97,8 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
 .site-ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;flex:none}
 .muted{color:var(--ink-3);font-size:13px;margin-top:2px}
 .card.row{padding:14px 16px}
+.empty-hint{display:none;background:var(--card);border:1.5px dashed var(--line);border-radius:var(--r);padding:22px 18px;text-align:center;font-size:14px;line-height:1.6;color:var(--ink-2)}
+#vaultList:empty+.empty-hint{display:block}
 
 /* ---------- risk ---------- */
 .notice{background:var(--alert);color:#fff;border-radius:var(--r);padding:18px;margin:6px 0 16px;position:relative;overflow:hidden}
@@ -103,7 +107,10 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
 .notice span{font-size:14px;opacity:.9;line-height:1.45;display:block}
 .domino{display:flex;flex-direction:column;margin:4px 0}
 .domino .node{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
-.domino .node b{font-size:15px}
+.domino .node b{font-size:17px;letter-spacing:-.015em;display:block}
+.domino .node .muted{font-size:14px;color:var(--ink-2);margin-top:3px}
+.domino .node .pill{font-size:13.5px;padding:7px 13px}
+.domino .node{padding:15px 16px}
 .domino .link{height:30px;margin-left:35px;border-left:2px dashed var(--alert);position:relative}
 .domino .link span{position:absolute;left:12px;top:6px;font-size:12px;color:var(--alert);font-weight:700}
 .domino .node.leak{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -145,8 +152,11 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
 .stat>div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center}
 .stat .n{font-size:26px;font-weight:800;letter-spacing:-.03em}
 .stat .l{font-size:12px;color:var(--ink-3);margin-top:3px;font-weight:600}
-.proof{background:var(--ink);color:#fff;border-radius:16px;padding:15px 16px;font-size:14px;font-weight:600;line-height:1.5;display:flex;gap:10px;align-items:center}
-.proof svg{flex:none}
+.stat>div:nth-child(3){background:var(--ink);border-color:var(--ink);color:#fff}
+.stat>div:nth-child(3) .n{font-size:28px;color:#9FE3D4}
+.stat>div:nth-child(3) .l{color:rgba(255,255,255,.7)}
+.proof{background:linear-gradient(135deg,var(--guard-deep),var(--guard));color:#fff;border-radius:18px;padding:20px 18px;font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.4;display:flex;gap:12px;align-items:center;box-shadow:0 12px 30px rgba(14,124,107,.3)}
+.proof svg{flex:none;width:34px;height:34px}
 @media (prefers-reduced-motion:reduce){.ring.busy,.ring.busy .inner,.eye .scan,.steps i.now,.check{animation:none}.sheet,.screen.on{transition:none;animation:none}}
 </style>
 </head>
@@ -170,8 +180,9 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
     </div>
     <h2>보호 중인 계정</h2>
     <div id="vaultList"></div>
+    <div class="empty-hint">아직 등록한 계정이 없습니다. 자주 쓰는 사이트의 계정을 등록하면 유출 여부를 계속 확인하고, 문제가 생기면 대신 처리합니다.</div>
     <div style="height:10px"></div>
-    <button class="btn btn-ghost" id="simBtn">유출 발생 상황 보기</button>
+    <button class="btn btn-outline" id="simBtn">유출 발생 상황 보기</button>
   </section>
 
   <!-- 알림 / 위험 -->

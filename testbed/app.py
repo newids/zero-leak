@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
 Zero-Leak 테스트베드 (데모 전용, 실제 사이트 아님).
-- /shop     데모쇼핑: 로그인 → 마이페이지 → 회원정보 → 비밀번호 변경 (4~5단계)
+- /shop     데모쇼핑(전자책 서점 스타일): 로그인 → 마이페이지 → 정보 변경 → 비밀번호 변경
 - /webhard  데모웹하드: 홈 → 설정 → 계정 관리 → '유지하기' 유인 팝업 2회 → 탈퇴 완료 (다크패턴)
 세션 없이 쿼리스텝으로 흐름만 모사한다. 모든 계정/비밀번호/상품/파일은 가짜.
 
 에이전트와의 약속 (agent/som.js, agent/llm.py 가 읽는 것)
 - 클릭 대상은 <a>, <button>, <input>. 꾸밈용 요소는 클릭 가능하게 만들지 않는다.
-- 핵심 버튼(로그인·회원정보 수정·비밀번호 변경·변경하기·설정·계정 관리·회원 탈퇴·
+- 핵심 버튼(로그인·정보 변경·비밀번호 변경·설정·계정 관리·회원 탈퇴·
   포기하고 떠나기·그래도 탈퇴할게요)은 뷰포트 720×460 안에 보여야 한다.
-- 최종 제출은 <button>(변경하기, 회원 탈퇴). 승인 핸드오프가 여기서 걸린다.
+- 최종 제출은 <button>(비밀번호 변경, 회원 탈퇴). 승인 핸드오프가 여기서 걸린다.
 - 완료 페이지의 h1 에만 '변경 완료' / '탈퇴 완료' 를 쓴다.
 - 외부 리소스(폰트·CDN) 없음. 네트워크 감시 로그를 깨끗하게 유지한다.
 """
@@ -19,171 +19,211 @@ app = Flask(__name__)
 
 FONT = "font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',Pretendard,system-ui,sans-serif"
 
-# ================================================================ 데모쇼핑
+# ================================================================ 데모쇼핑 (전자책 서점 스타일)
 SHOP_CSS = f"""
+:root{{--blue:#1f8ce6;--blue-dark:#1577c9;--blue-light:#e8f3fd;--text:#212529;--text-2:#495057;--muted:#808991;
+  --line:#e6e8eb;--bg-2:#f2f4f5;--star:#ffb400;--red:#e64938;--radius:4px}}
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{{FONT};background:#F5F6F8;color:#191F28;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}}
+html,body{{background:#fff;color:var(--text);{FONT};font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}}
 a{{color:inherit;text-decoration:none}}
-.wrap{{max-width:1040px;margin:0 auto;padding:0 20px}}
-.util{{background:#fff;border-bottom:1px solid #EEF0F3;font-size:12px;color:#6B7684}}
-.util .wrap{{display:flex;justify-content:flex-end;gap:14px;height:28px;align-items:center}}
-.hdr{{background:#fff;border-bottom:1px solid #E5E8EB}}
-.hdr .wrap{{display:flex;align-items:center;gap:18px;height:58px}}
-.logo{{font-size:22px;font-weight:900;letter-spacing:-.04em;color:#FF5A36;white-space:nowrap}}
-.logo i{{display:inline-block;width:9px;height:9px;border-radius:50%;background:#191F28;margin-left:3px;vertical-align:4px}}
-.search{{flex:1;display:flex;align-items:center;background:#F2F4F6;border-radius:8px;height:38px;padding:0 12px;gap:8px;max-width:520px}}
-.search input{{flex:1;border:0;background:none;font-size:14px;outline:none;{FONT}}}
-.search svg{{flex:none}}
-.hdr-ic{{display:flex;gap:16px;margin-left:auto;color:#333D4B;font-size:12px}}
-.hdr-ic div{{display:flex;flex-direction:column;align-items:center;gap:3px}}
-.cat{{background:#fff;border-bottom:1px solid #E5E8EB}}
-.cat .wrap{{display:flex;gap:22px;height:40px;align-items:center;font-size:14px;font-weight:600;color:#333D4B;overflow:hidden}}
-.cat a.hot{{color:#FF5A36}}
-.crumb{{font-size:12px;color:#8B95A1;margin:14px 0 10px}}
-.crumb b{{color:#4E5968;font-weight:600}}
-main{{padding-bottom:40px}}
-.card{{background:#fff;border:1px solid #E5E8EB;border-radius:12px;padding:20px}}
-h1{{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:14px}}
-h3{{font-size:14px;font-weight:700;color:#333D4B;margin-bottom:10px}}
-.btn{{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 20px;border-radius:8px;
-  font-size:15px;font-weight:700;border:0;cursor:pointer;{FONT};color:#fff;background:#FF5A36;white-space:nowrap}}
-.btn.block{{display:flex;width:100%}}
-.btn.line{{background:#fff;color:#333D4B;border:1px solid #D1D6DB}}
-.btn.dark{{background:#191F28}}
-.field{{margin-bottom:12px}}
-.field label{{display:block;font-size:13px;color:#4E5968;font-weight:600;margin-bottom:6px}}
-.field input{{display:block;width:100%;height:44px;border:1px solid #D1D6DB;border-radius:8px;padding:0 12px;font-size:15px;{FONT};outline:none}}
-.field input:focus{{border-color:#191F28}}
-.hint{{font-size:12px;color:#8B95A1;margin-top:6px}}
-.links{{display:flex;justify-content:center;gap:12px;font-size:13px;color:#6B7684;margin-top:14px}}
-.links a+a::before{{content:"";display:inline-block;width:1px;height:10px;background:#D1D6DB;margin-right:12px;vertical-align:-1px}}
-.grid{{display:grid;grid-template-columns:200px 1fr;gap:16px;margin-top:4px}}
-.side{{background:#fff;border:1px solid #E5E8EB;border-radius:12px;padding:16px 0}}
-.side h3{{padding:0 18px;margin:0 0 6px}}
-.side a{{display:block;padding:8px 18px;font-size:14px;color:#4E5968}}
-.side a.on{{color:#FF5A36;font-weight:700;background:#FFF3F0}}
-.side .sep{{height:1px;background:#EEF0F3;margin:8px 0}}
-.greet{{display:flex;align-items:center;gap:14px}}
-.avatar{{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#FFB199,#FF5A36);color:#fff;display:grid;place-items:center;font-weight:800;font-size:18px}}
-.greet b{{font-size:17px}}
-.tier{{display:inline-block;font-size:11px;font-weight:800;color:#FF5A36;background:#FFF3F0;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:2px}}
-.kpi{{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#EEF0F3;border-radius:10px;overflow:hidden;margin-top:16px}}
-.kpi div{{background:#F9FAFB;padding:12px 14px}}
-.kpi small{{display:block;font-size:12px;color:#8B95A1}}
-.kpi b{{font-size:18px;letter-spacing:-.02em}}
-.order{{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid #EEF0F3}}
-.thumb{{width:56px;height:56px;border-radius:8px;background:#E9ECF1}}
-.order .st{{margin-left:auto;font-size:12px;font-weight:700;color:#2B8A3E;background:#E9F7EC;padding:4px 8px;border-radius:6px}}
-.row{{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #EEF0F3;font-size:14px}}
-.row:last-child{{border-bottom:0}}
-.row small{{color:#8B95A1;width:110px;flex:none}}
-.row span{{flex:1}}
-.done{{text-align:center;padding:36px 20px}}
-.done .ck{{width:64px;height:64px;border-radius:50%;background:#FFF3F0;margin:0 auto 16px;display:grid;place-items:center}}
-.done p{{color:#6B7684;margin:6px 0 20px}}
-.banner{{font-size:11px;color:#8B95A1;text-align:center;padding:8px}}
+button{{{FONT};cursor:pointer}}
+input{{{FONT}}}
+.wrap{{max-width:1000px;margin:0 auto;padding:0 20px}}
+.gnb{{border-bottom:1px solid var(--line);background:#fff}}
+.gnb-top{{display:flex;align-items:center;height:56px;gap:20px}}
+.logo{{display:flex;align-items:center;color:var(--blue);font-weight:900;font-size:24px;letter-spacing:-1.5px;white-space:nowrap}}
+.logo span{{color:var(--text);font-size:11px;font-weight:700;margin-left:5px;letter-spacing:0;align-self:flex-end;margin-bottom:5px}}
+.search{{flex:1;max-width:340px;display:flex;align-items:center;background:var(--bg-2);border-radius:var(--radius);height:34px;padding:0 12px;gap:8px;color:var(--muted)}}
+.search input{{flex:1;border:0;background:transparent;font-size:14px;outline:none;color:var(--text)}}
+.gnb-right{{margin-left:auto;display:flex;align-items:center;gap:8px}}
+.gnb-right a,.gnb-right button{{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--radius);font-size:13px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--text-2)}}
+.gnb-right a.primary{{background:var(--blue);border-color:var(--blue);color:#fff}}
+.gnb-right .icon-btn{{width:34px;padding:0;justify-content:center;border:0;background:transparent;font-size:16px}}
+.gnb-nav{{display:flex;align-items:flex-end;height:40px;gap:26px}}
+.gnb-nav a{{font-size:15px;font-weight:700;color:var(--text-2);padding-bottom:10px;border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px}}
+.gnb-nav a.on{{color:var(--text);border-color:var(--text)}}
+.gnb-nav a .new{{width:6px;height:6px;border-radius:50%;background:var(--red);margin-top:-10px}}
+.snb{{border-bottom:1px solid var(--line)}}
+.snb .wrap{{display:flex;gap:4px;height:40px;align-items:center;overflow:hidden}}
+.snb a{{display:inline-block;padding:5px 12px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--text-2);white-space:nowrap}}
+.snb a.on{{background:var(--text);color:#fff}}
+.page-title{{font-size:20px;font-weight:800;margin:16px 0 12px}}
+.my{{display:grid;grid-template-columns:210px 1fr;gap:20px;align-items:start;margin-bottom:40px}}
+.side{{border:1px solid var(--line);border-radius:8px;overflow:hidden}}
+.side .me{{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}}
+.avatar{{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}}
+.side .me b{{display:block;font-size:14px}}
+.side .me span{{font-size:11.5px;color:var(--muted)}}
+.side .grp{{padding:6px 0;border-bottom:1px solid var(--line)}}
+.side .grp:last-child{{border:0}}
+.side .grp h4{{font-size:11px;color:var(--muted);padding:6px 16px 2px;font-weight:700}}
+.side a{{display:flex;justify-content:space-between;align-items:center;padding:7px 16px;font-size:13.5px;color:var(--text-2);font-weight:600}}
+.side a.on{{color:var(--blue);background:var(--blue-light)}}
+.side a .cnt{{font-size:12px;color:var(--muted);font-weight:700}}
+.panel{{border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin-bottom:14px}}
+.panel h3{{font-size:15.5px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}}
+.panel h3 small{{font-size:12px;color:var(--muted);font-weight:600}}
+.stats{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}}
+.stat{{background:var(--bg-2);border-radius:8px;padding:12px 14px}}
+.stat span{{font-size:11.5px;color:var(--muted);font-weight:700;display:block}}
+.stat b{{font-size:18px;display:block;margin-top:4px;letter-spacing:-.3px}}
+.stat b small{{font-size:11px;color:var(--muted);margin-left:2px;font-weight:700}}
+.info-list{{list-style:none;border-top:1px solid var(--line)}}
+.info-list li{{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line);font-size:14px}}
+.info-list li .k{{color:var(--muted);font-weight:700;font-size:13px}}
+.info-list li .v{{font-weight:600}}
+.info-list li .v .badge{{font-size:11px;background:var(--blue-light);color:var(--blue);padding:2px 7px;border-radius:4px;margin-left:6px;font-weight:800}}
+.act{{font-size:13px;color:var(--text-2);border:1px solid #d1d5d9;background:#fff;height:30px;padding:0 12px;border-radius:var(--radius);font-weight:700;display:inline-flex;align-items:center;white-space:nowrap}}
+.act.blue{{color:var(--blue);border-color:var(--blue)}}
+.shelf{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}}
+.cover{{aspect-ratio:7/10;border-radius:4px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.06) inset}}
+.cover svg{{width:100%;height:100%;display:block}}
+.book .t{{margin-top:7px;font-size:12.5px;font-weight:700;line-height:1.3}}
+.prog{{height:4px;background:var(--line);border-radius:2px;margin-top:6px;overflow:hidden}}
+.prog i{{display:block;height:100%;background:var(--blue)}}
+.auth{{display:flex;flex-direction:column;align-items:center;padding:30px 20px 40px}}
+.auth .logo{{font-size:34px;margin-bottom:22px}}
+.card{{width:100%;max-width:400px}}
+.field{{margin-bottom:10px}}
+.field label{{display:block;font-size:12px;color:var(--text-2);font-weight:700;margin-bottom:5px}}
+.field input{{width:100%;height:44px;border:1px solid #d1d5d9;border-radius:var(--radius);padding:0 14px;font-size:15px;outline:none;background:#fff;color:var(--text)}}
+.field input:focus{{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-light)}}
+.field .hint{{font-size:12px;color:var(--muted);margin-top:5px}}
+.pw-wrap{{position:relative}}
+.pw-wrap input{{padding-right:48px}}
+.pw-wrap .eye{{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:700;padding:6px}}
+.check{{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);margin:8px 0 12px}}
+.check .cb{{width:17px;height:17px;border-radius:3px;background:var(--blue);color:#fff;font-size:11px;font-weight:900;display:grid;place-items:center}}
+.btn{{display:inline-flex;align-items:center;justify-content:center;width:100%;height:46px;border-radius:var(--radius);font-size:15px;font-weight:800;border:1px solid transparent}}
+.btn.blue{{background:var(--blue);color:#fff}}
+.btn.ghost{{background:#fff;border-color:#d1d5d9;color:var(--text-2)}}
+.btn.sm{{height:38px;font-size:14px;width:auto;padding:0 18px}}
+.auth-links{{display:flex;justify-content:center;margin-top:16px;font-size:13px;color:var(--text-2)}}
+.auth-links a{{padding:0 12px;border-right:1px solid var(--line)}}
+.auth-links a:last-child{{border:0}}
+.form{{max-width:420px}}
+.form-actions{{display:flex;gap:10px;margin-top:14px}}
+.success{{text-align:center;padding:16px 0 10px}}
+.success .ic{{width:60px;height:60px;border-radius:50%;background:#e8f7ec;color:#2ea043;display:grid;place-items:center;font-size:28px;margin:0 auto 14px}}
+.success h1{{font-size:18px;font-weight:800}}
+.success p{{color:var(--muted);margin:8px 0 16px;font-size:13px}}
+.banner{{font-size:11px;color:var(--muted);text-align:center;padding:10px;background:var(--bg-2);margin-top:10px}}
 """
 
+COVERS = [("#8e2a2a", "#d9775c", "달빛 아래 서점", "정수민"), ("#1b2440", "#4a5f9e", "느리게 걷는 법", "박도윤"),
+          ("#2f3a1e", "#7f9a4c", "회계 첫걸음", "이서진"), ("#3b1f5e", "#9b59d6", "밤의 정원사", "김하늘"),
+          ("#0f4c5c", "#3fa7b8", "작은 습관의 힘", "최민호")]
 
-def shop(title, body, crumb="", logged=True, cat=False):
-    util = ('<a href="#">demo1 님</a><a href="/shop">로그아웃</a><a href="#">고객센터</a>' if logged
-            else '<a href="#">회원가입</a><a href="#">고객센터</a>')
-    catbar = ("""<nav class=cat><div class=wrap><a href="#" class=hot>타임특가</a><a href="#">베스트</a><a href="#">신상품</a>
-      <a href="#">패션</a><a href="#">뷰티</a><a href="#">식품</a><a href="#">리빙</a><a href="#">디지털</a><a href="#">스포츠</a></div></nav>"""
-              if cat else "")
-    crumb_html = f'<div class=crumb>홈 › {crumb}</div>' if crumb else '<div style="height:16px"></div>'
+
+def cover(i, c1, c2, title, author):
+    return (f'<svg viewBox="0 0 140 200" role=img><defs><linearGradient id=g{i} x1=0 y1=0 x2=1 y2=1>'
+            f'<stop offset=0 stop-color="{c1}"/><stop offset=1 stop-color="{c2}"/></linearGradient></defs>'
+            f'<rect width=140 height=200 fill="url(#g{i})"/><rect width=8 height=200 fill="rgba(0,0,0,.25)"/>'
+            f'<circle cx=110 cy=150 r=34 fill="rgba(255,255,255,.08)"/>'
+            f'<text x=14 y=60 font-size=14 font-weight=800 fill="#fff" font-family="Apple SD Gothic Neo,Pretendard,Malgun Gothic,sans-serif">{title}</text>'
+            f'<text x=14 y=182 font-size=9 fill="rgba(255,255,255,.75)" font-family="Apple SD Gothic Neo,Pretendard,Malgun Gothic,sans-serif">{author}</text></svg>')
+
+
+def shop(title, body, logged=True, page=""):
+    right = ('<button class=icon-btn type=button aria-label="알림">🔔</button><button class=icon-btn type=button aria-label="장바구니">🛒</button>'
+             '<a href="/shop/my" class=primary>마이페이지</a>' if logged else '<a href="#">회원가입</a>')
+    nav = "".join(f'<a href="#"{" class=on" if n == "도서" else ""}>{n}{"<i class=new></i>" if n == "데모샵" else ""}</a>'
+                  for n in ["만화", "웹툰", "웹소설", "도서", "데모샵"])
     return f"""<!doctype html><html lang=ko><head><meta charset=utf-8><title>{title} - 데모쇼핑</title>
 <meta name=viewport content="width=device-width"><style>{SHOP_CSS}</style></head><body>
-<div class=util><div class=wrap>{util}</div></div>
-<header class=hdr><div class=wrap>
-  <a class=logo href="/shop/my">데모쇼핑<i></i></a>
-  <div class=search><svg width=16 height=16 viewBox="0 0 24 24" fill=none stroke="#8B95A1" stroke-width=2.4><circle cx=11 cy=11 r=7/><path d="M20 20l-3.5-3.5"/></svg>
-    <input placeholder="찾고 싶은 상품을 검색해 보세요"></div>
-  <div class=hdr-ic>
-    <div><svg width=22 height=22 viewBox="0 0 24 24" fill=none stroke="#333D4B" stroke-width=1.8><path d="M12 21s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.4-7 10-7 10z"/></svg>찜</div>
-    <div><svg width=22 height=22 viewBox="0 0 24 24" fill=none stroke="#333D4B" stroke-width=1.8><path d="M3 4h2l2.4 11h11L21 7H6"/><circle cx=9 cy=20 r=1.5/><circle cx=17 cy=20 r=1.5/></svg>장바구니</div>
-  </div>
-</div></header>{catbar}
-<main class=wrap>{crumb_html}{body}</main>
-<div class=banner>해커톤 테스트베드 · 실제 서비스가 아닙니다</div></body></html>"""
+<header class=gnb><div class="wrap gnb-top">
+  <a class=logo href="/shop/my">DEMO<span>SHOP</span></a>
+  <div class=search role=search>🔍<input type=search placeholder="제목, 출판사, 작가를 검색하세요"></div>
+  <div class=gnb-right>{right}</div></div>
+  <nav class="wrap gnb-nav">{nav}</nav></header>
+<main class=wrap>{body}</main>
+<div class=banner>해커톤 테스트베드 · 실제 서비스가 아닙니다 (데모쇼핑은 가상의 전자책 서점입니다)</div></body></html>"""
 
 
-SHOP_SIDE = """<aside class=side><h3>마이페이지</h3>
-  <a href="/shop/my" {my}>주문 · 배송 조회</a><a href="#">취소 · 반품</a><a href="#">쿠폰</a><a href="#">적립금</a>
-  <div class=sep></div>
-  <a href="/shop/account" {acc}>회원정보 수정</a><a href="#">배송지 관리</a><a href="#">1:1 문의</a></aside>"""
-
-
-def side(on="my"):
-    return SHOP_SIDE.format(my='class=on' if on == "my" else '', acc='class=on' if on == "acc" else '')
+def side(on):
+    def a(label, href, key, cnt=""):
+        return f'<a href="{href}"{" class=on" if key == on else ""}>{label}{f"<span class=cnt>{cnt}</span>" if cnt else ""}</a>'
+    return ('<aside class=side><div class=me><span class=avatar>D</span><div><b>demo1</b><span>demo1@zlas.kr</span></div></div>'
+            '<div class=grp><h4>내 서재</h4>' + a("구매 목록", "#", "buy", "128") + a("대여 목록", "#", "rent", "4") + a("찜한 책", "#", "wish", "19") + '</div>'
+            '<div class=grp><h4>결제·혜택</h4>' + a("캐시 충전", "#", "cash") + a("쿠폰함", "#", "coupon", "3") + a("포인트", "#", "point") + '</div>'
+            '<div class=grp><h4>계정</h4>' + a("정보 변경", "/shop/account", "account") + a("알림 설정", "#", "noti") + a("기기 관리", "#", "device") + '</div></aside>')
 
 
 @app.route("/shop")
 def shop_login():
-    return shop("로그인", """
-      <div class=card style="max-width:400px;margin:4px auto 0;padding:26px 28px">
-        <h1 style="text-align:center">로그인</h1>
-        <div class=field><label for=em>이메일</label><input id=em type=email placeholder="example@email.com"></div>
-        <div class=field><label for=pw>비밀번호</label><input id=pw type=password placeholder="비밀번호를 입력하세요"></div>
-        <a class="btn block" href="/shop/my">로그인</a>
-        <div class=links><a href="#">아이디 찾기</a><a href="#">비밀번호 찾기</a><a href="#">회원가입</a></div>
-      </div>""", logged=False, cat=True)
+    return f"""<!doctype html><html lang=ko><head><meta charset=utf-8><title>로그인 - 데모쇼핑</title>
+<meta name=viewport content="width=device-width"><style>{SHOP_CSS}</style></head><body>
+<main class=auth>
+  <a class=logo href="/shop">DEMO</a>
+  <div class=card>
+    <div class=field><input type=text placeholder="아이디" autocomplete=username></div>
+    <div class=field><div class=pw-wrap><input type=password placeholder="비밀번호" autocomplete=current-password><button type=button class=eye>표시</button></div></div>
+    <div class=check><span class=cb>✓</span> 로그인 상태 유지</div>
+    <a class="btn blue" href="/shop/my">로그인</a>
+    <div class=auth-links><a href="#">아이디 찾기</a><a href="#">비밀번호 재설정</a><a href="#">회원가입</a></div>
+  </div>
+</main>
+<div class=banner>해커톤 테스트베드 · 실제 서비스가 아닙니다</div></body></html>"""
 
 
 @app.route("/shop/my")
 def shop_my():
+    shelf = "".join(f'<div class=book><div class=cover>{cover(i, *c)}</div><div class=t>{c[2]}</div><div class=prog><i style="width:{p}%"></i></div></div>'
+                    for i, (c, p) in enumerate(zip(COVERS, [82, 35, 100, 12, 58])))
     return shop("마이페이지", f"""
-      <div class=grid>{side("my")}
+      <h1 class=page-title>마이페이지</h1>
+      <div class=my>{side("my")}
       <section>
-        <div class=card>
-          <div class=greet><div class=avatar>D</div><div><b>demo1 님</b><span class=tier>VIP</span><div class=hint>2019년부터 함께한 고객</div></div>
-            <a class="btn line" style="margin-left:auto;height:38px;font-size:14px" href="/shop/account">회원정보 수정</a></div>
-          <div class=kpi><div><small>적립금</small><b>12,500원</b></div><div><small>쿠폰</small><b>3장</b></div><div><small>이번 달 주문</small><b>2건</b></div></div>
-        </div>
-        <div class=card style="margin-top:12px;padding:16px 20px 4px"><h3>최근 주문</h3>
-          <div class=order><div class=thumb style="background:#DDE7F5"></div><div><b>무선 이어폰 프로 2</b><div class=hint>10.28 주문 · 1개</div></div><span class=st>배송 완료</span></div>
-          <div class=order><div class=thumb style="background:#F5E6DD"></div><div><b>데일리 코튼 양말 5팩</b><div class=hint>10.25 주문 · 2개</div></div><span class=st>배송 완료</span></div>
-        </div>
-      </section></div>""", crumb="<b>마이페이지</b>")
+        <div class=panel><h3>내 자산 <small>2026.10.31 기준</small></h3>
+          <div class=stats><div class=stat><span>캐시</span><b>12,500<small>원</small></b></div><div class=stat><span>포인트</span><b>3,210<small>P</small></b></div>
+          <div class=stat><span>쿠폰</span><b>3<small>장</small></b></div><div class=stat><span>읽은 책</span><b>128<small>권</small></b></div></div></div>
+        <div class=panel><h3>계정 정보 <a class="act blue" href="/shop/account">정보 변경 ›</a></h3>
+          <ul class=info-list><li><span class=k>아이디</span><span class=v>demo1</span></li>
+          <li><span class=k>이메일</span><span class=v>demo1@zlas.kr <span class=badge>인증됨</span></span></li></ul></div>
+        <div class=panel><h3>최근 읽은 책 <small>내 서재 ›</small></h3><div class=shelf>{shelf}</div></div>
+      </section></div>""")
 
 
 @app.route("/shop/account")
 def shop_account():
-    return shop("회원정보 수정", f"""
-      <div class=grid>{side("acc")}
-      <section><div class=card>
-        <h1 style="display:flex;align-items:center;justify-content:space-between">회원정보 수정
-          <a class="btn dark" style="height:38px;font-size:14px" href="/shop/pw">비밀번호 변경</a></h1>
-        <div class=row><small>이름</small><span>김*모</span></div>
-        <div class=row><small>이메일</small><span>demo1@zlas.kr</span></div>
-        <div class=row><small>휴대폰</small><span>010-****-1234</span><a class="btn line" style="height:32px;font-size:13px;padding:0 12px" href="#">변경</a></div>
-        <div class=row><small>비밀번호</small><span>마지막 변경 2년 전</span></div>
-        <div class=row><small>마케팅 수신</small><span>이메일 · 앱 푸시 동의</span><a class="btn line" style="height:32px;font-size:13px;padding:0 12px" href="#">설정</a></div>
-      </div></section></div>""", crumb="마이페이지 › <b>회원정보 수정</b>")
+    return shop("정보 변경", f"""
+      <h1 class=page-title>정보 변경</h1>
+      <div class=my>{side("account")}
+      <section>
+        <div class=panel><h3>보안</h3>
+          <ul class=info-list>
+          <li><span class=k>비밀번호</span><span class=v>•••••••• <small style="color:var(--muted);font-weight:600">마지막 변경 2년 전</small></span><a class="act blue" href="/shop/pw">비밀번호 변경</a></li>
+          <li><span class=k>2단계 인증</span><span class=v>사용 안 함</span><a class=act href="#">설정</a></li></ul></div>
+        <div class=panel><h3>기본 정보</h3>
+          <ul class=info-list>
+          <li><span class=k>아이디</span><span class=v>demo1</span></li>
+          <li><span class=k>이메일</span><span class=v>demo1@zlas.kr <span class=badge>인증됨</span></span><a class=act href="#">변경</a></li>
+          <li><span class=k>휴대폰</span><span class=v>010-****-1234</span><a class=act href="#">변경</a></li></ul></div>
+      </section></div>""")
 
 
 @app.route("/shop/pw")
 def shop_pw():
-    return shop("비밀번호 변경", """
-      <div class=card style="max-width:440px;margin:0 auto;padding:22px 26px">
-        <h1>비밀번호 변경</h1>
-        <form action="/shop/pw/done" method=get>
-        <div class=field><label for=cur>현재 비밀번호</label><input id=cur type=password name=cur></div>
-        <div class=field><label for=new>새 비밀번호</label><input id=new type=password name=new>
-          <div class=hint>8~20자, 영문·숫자·특수문자를 함께 사용하세요</div></div>
-        <button class="btn block" type=submit>변경하기</button></form>
-      </div>""", crumb="마이페이지 › 회원정보 수정 › <b>비밀번호 변경</b>")
+    return shop("비밀번호 변경", f"""
+      <h1 class=page-title>비밀번호 변경</h1>
+      <div class=my>{side("account")}
+      <section><div class=panel><h3>새 비밀번호 설정 <small>안전을 위해 주기적으로 변경해 주세요</small></h3>
+        <form class=form action="/shop/pw/done" method=get>
+        <div class=field><label for=cur>현재 비밀번호</label><input id=cur type=password name=cur placeholder="현재 비밀번호 입력" autocomplete=current-password></div>
+        <div class=field><label for=new>새 비밀번호</label><input id=new type=password name=new placeholder="새 비밀번호 입력" autocomplete=new-password>
+          <div class=hint>8~32자 · 영문, 숫자, 특수문자 중 2가지 이상 · 공백 없이 · 아이디 미포함</div></div>
+        <div class=form-actions><a class="btn ghost sm" href="/shop/account">취소</a><button type=submit class="btn blue sm">비밀번호 변경</button></div>
+        </form></div></section></div>""")
 
 
 @app.route("/shop/pw/done")
 def shop_done():
-    return shop("변경 완료", """
-      <div class="card done" style="max-width:440px;margin:0 auto">
-        <div class=ck><svg width=30 height=30 viewBox="0 0 24 24" fill=none stroke="#FF5A36" stroke-width=3 stroke-linecap=round stroke-linejoin=round><path d="M5 12l5 5L20 7"/></svg></div>
-        <h1 style="margin-bottom:0">비밀번호 변경 완료</h1>
-        <p>다른 기기에서는 자동으로 로그아웃되었습니다.<br>새 비밀번호로 다시 로그인해 주세요.</p>
-        <a class="btn line" href="/shop/my">마이페이지로</a>
-      </div>""", crumb="마이페이지 › <b>비밀번호 변경</b>")
+    return shop("변경 완료", f"""
+      <h1 class=page-title>비밀번호 변경</h1>
+      <div class=my>{side("account")}
+      <section><div class="panel success"><div class=ic>✓</div><h1>비밀번호 변경 완료</h1>
+        <p>다른 기기에서는 자동으로 로그아웃되었습니다. 새 비밀번호로 다시 로그인해 주세요.</p>
+        <a class="btn ghost sm" href="/shop/my">마이페이지로</a></div></section></div>""")
 
 
 # ================================================================ 데모웹하드
