@@ -84,6 +84,23 @@ def approve():
     return jsonify({"ok": True})
 
 
+@app.post("/api/action")
+def set_action():
+    """사용자가 사이트별 조치(change|withdraw)를 바꾼다. risk.json 의 action 을 덮어쓰고 원래 권고는 action_auto 에 남긴다."""
+    body = request.json if request.is_json else {}
+    site, action = body.get("site"), body.get("action")
+    if action not in ("change", "withdraw"):
+        return jsonify({"ok": False, "why": "action must be change|withdraw"}), 400
+    risk = load(SHARED / "risk.json", [])
+    for r in risk:
+        if r["site"] == site:
+            r.setdefault("action_auto", r["action"])
+            r["action"] = action
+            r["action_by"] = "auto" if action == r["action_auto"] else "user"
+    (SHARED / "risk.json").write_text(json.dumps(risk, ensure_ascii=False, indent=2))
+    return jsonify({"ok": True, "risk": risk})
+
+
 @app.post("/api/skip")
 def skip():
     (SHARED / "skip.flag").write_text(request.json.get("site", "") if request.is_json else "")
