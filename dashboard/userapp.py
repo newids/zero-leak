@@ -72,8 +72,10 @@ def protect():
         p.unlink()
     provider = request.json.get("provider", os.getenv("LLM_PROVIDER", "mock")) if request.is_json else "mock"
     env = dict(os.environ, STEP_PAUSE_MS=os.getenv("STEP_PAUSE_MS", "700"))
-    PROC["agent"] = subprocess.Popen([sys.executable, str(AGENT), "--all", "--provider", provider],
-                                     cwd=str(AGENT.parent), env=env,
+    cmd = [sys.executable, str(AGENT), "--all", "--provider", provider]
+    if os.getenv("AGENT_RECORD_DIR"):                       # 시연 영상용: 에이전트 브라우저도 녹화
+        cmd += ["--record", os.getenv("AGENT_RECORD_DIR")]
+    PROC["agent"] = subprocess.Popen(cmd, cwd=str(AGENT.parent), env=env,
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return jsonify({"ok": True})
 
