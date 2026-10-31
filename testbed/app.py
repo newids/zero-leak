@@ -13,7 +13,7 @@ Zero-Leak 테스트베드 (데모 전용, 실제 사이트 아님).
 - 완료 페이지의 h1 에만 '변경 완료' / '탈퇴 완료' 를 쓴다.
 - 외부 리소스(폰트·CDN) 없음. 네트워크 감시 로그를 깨끗하게 유지한다.
 """
-from flask import Flask
+from flask import Flask, redirect, request
 
 app = Flask(__name__)
 
@@ -205,10 +205,13 @@ def shop_account():
 
 @app.route("/shop/pw")
 def shop_pw():
+    # 빈 폼을 제출하면 여기로 되돌아온다. role=alert 는 som.js 가 헤딩으로 읽어 모델에 전달한다.
+    err = ('<p role=alert style="color:var(--red);font-weight:600;margin:0 0 10px">현재 비밀번호와 새 비밀번호를 모두 입력하세요.</p>'
+           if request.args.get("err") else "")
     return shop("비밀번호 변경", f"""
       <h1 class=page-title>비밀번호 변경</h1>
       <div class=my>{side("account")}
-      <section><div class=panel><h3>새 비밀번호 설정 <small>안전을 위해 주기적으로 변경해 주세요</small></h3>
+      <section><div class=panel><h3>새 비밀번호 설정 <small>안전을 위해 주기적으로 변경해 주세요</small></h3>{err}
         <form class=form action="/shop/pw/done" method=get>
         <div class=field><label for=cur>현재 비밀번호</label><input id=cur type=password name=cur placeholder="현재 비밀번호 입력" autocomplete=current-password></div>
         <div class=field><label for=new>새 비밀번호</label><input id=new type=password name=new placeholder="새 비밀번호 입력" autocomplete=new-password>
@@ -241,6 +244,9 @@ def shop_leave_done():
 
 @app.route("/shop/pw/done")
 def shop_done():
+    # 실제 사이트처럼 빈 비밀번호는 거부한다. 입력을 건너뛰고 제출해도 '완료'가 뜨는 가짜 성공을 막는다.
+    if not request.args.get("cur") or not request.args.get("new"):
+        return redirect("/shop/pw?err=1")
     return shop("변경 완료", f"""
       <h1 class=page-title>비밀번호 변경</h1>
       <div class=my>{side("account")}

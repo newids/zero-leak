@@ -100,7 +100,7 @@
       "id": "vlm",
       "type": "cloud",
       "label": "VLM 추론",
-      "sublabel": "A100 vLLM · Qwen2.5-VL",
+      "sublabel": "L4 vLLM · Qwen2.5-VL",
       "pos": [
         980,
         180
@@ -341,7 +341,7 @@
       "dot": "amber",
       "title": "확장(2단계)",
       "items": [
-        "같은 A100에서 QLoRA 파인튜닝, 화면 16개 병렬",
+        "GPU 증설 후 QLoRA 파인튜닝, 화면 16개 병렬",
         "Passkey 전환, 패스워드 매니저 연동",
         "기업용: 임직원 계정 일괄 격리"
       ]
