@@ -51,7 +51,7 @@ def state():
             and not (SHARED / "approve.flag").exists() and not (SHARED / "skip.flag").exists():
         pending = {"site": steps[-1]["site"], "reason": steps[-1]["action_json"].get("reason", "")}
     return jsonify({"risk": risk, "state": st, "shots": latest, "running": running(),
-                    "pending": pending, "vault": [{"site": v["site"], "email": v["email"],
+                    "pending": pending, "vault": [{"site": v["site"], "email": v["email"], "url": v.get("url", ""),
                                                    "dormant_days": v.get("dormant_days", 0)}
                                                   for v in load(SHARED / "vault.json", [])]})
 
