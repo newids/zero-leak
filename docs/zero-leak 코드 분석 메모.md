@@ -121,6 +121,8 @@ agent.py 루프 (최대 12단계, MAX_STEPS)
 2. `_guardrail_model()` except 절: 검증기 장애 시 allow 가 아니라 handoff (fail-open → fail-closed). 팀 판단 필요.
 3. `_system_prompt()` 에 "fill 할 수 있는 빈 입력란(input)이 있으면 제출 버튼보다 먼저 채워라" 추가.
 4. (선택) `som.js` 가 input 의 value 유무를 라벨에 표시.
+5. `PROMOTE_BELOW` 를 환경변수(`PROMOTE_BELOW`, 기본 0.6)로 빼기 — 게이트웨이가 넣는 실제 confidence 기준으로
+   틀린 답이 0.649 였으므로 0.8 근처를 제안 (표본 확대 후 확정).
 확인: `python infra/probe_vlm.py --provider claude --all` 3/3, `--provider vllm --all` 에서 shop_pw 가 fill 로.
 수정 후 `infra/probe_vlm.py` 의 `_claude_no_temperature` 임시 대체 블록은 기획자가 제거.
 
