@@ -223,6 +223,7 @@ __marimo__/
 .env
 shots/*.png
 shared/approve.flag
+shared/skip.flag
 shared/state.json
 recordings/
 docs/archify/review-*/

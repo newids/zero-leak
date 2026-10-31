@@ -54,7 +54,7 @@ class State:
     def __init__(self, provider: str):
         self.path = SHARED / "state.json"
         self.data = {"run_id": now(), "provider": provider, "current": {}, "steps": [],
-                     "summary": {"sites": 0, "changed": 0, "withdrawn": 0,
+                     "summary": {"sites": 0, "changed": 0, "withdrawn": 0, "skipped": 0,
                                  "elapsed_s": 0, "plaintext_sent": 0,
                                  "outbound_checked": 0}}
         self.t0 = time.time()
@@ -98,20 +98,25 @@ def attach_network_monitor(page, state: State):
     page.on("request", on_request)
 
 
-def wait_for_approval(site: str) -> bool:
-    flag = SHARED / "approve.flag"
-    if flag.exists():
-        flag.unlink()
-    print(f"  ⏸  승인 대기: {site} (shared/approve.flag, {APPROVE_TIMEOUT}s)")
+def wait_for_approval(site: str) -> str:
+    """'approved' | 'skipped' | 'timeout'.  approve.flag = 승인, skip.flag = 이 사이트 건너뛰기."""
+    flag, skip = SHARED / "approve.flag", SHARED / "skip.flag"
+    flag.unlink(missing_ok=True)
+    skip.unlink(missing_ok=True)
+    print(f"  ⏸  승인 대기: {site} (shared/approve.flag | skip.flag, {APPROVE_TIMEOUT}s)")
     deadline = time.time() + APPROVE_TIMEOUT
     while time.time() < deadline:
         if flag.exists():
             flag.unlink()
             print("  ▶  승인 확인")
-            return True
+            return "approved"
+        if skip.exists():
+            skip.unlink()
+            print("  ↷  사용자가 건너뜀")
+            return "skipped"
         time.sleep(HANDOFF_POLL)
     print("  ✗  승인 시간 초과")
-    return False
+    return "timeout"
 
 
 def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
@@ -142,10 +147,11 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
 
         if act.tool == "handoff":
             state.log(step, site, act.as_dict(), "handoff", shot, llm.last_ms, llm.last_route)
-            if wait_for_approval(site):
+            r = wait_for_approval(site)
+            if r == "approved":
                 history.append(f"{scr.path}|handoff:{act.reason}")
                 continue
-            result = "handoff_timeout"
+            result = "skipped" if r == "skipped" else "handoff_timeout"
             break
 
         target = next((e for e in scr.elements if e["n"] == act.n), None)
@@ -159,8 +165,9 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
                 and any(w in target["label"] for w in CONFIRM_WORDS):
             ask = {"tool": "handoff", "reason": f"'{target['label']}' 최종 확정 전 승인 필요"}
             state.log(step, site, ask, "handoff", shot, llm.last_ms, llm.last_route)
-            if not wait_for_approval(site):
-                result = "handoff_timeout"
+            r = wait_for_approval(site)
+            if r != "approved":
+                result = "skipped" if r == "skipped" else "handoff_timeout"
                 break
             confirmed = True
 
@@ -179,6 +186,9 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
     state.set_current(site, action, step, result)
     if result == "done":
         state.finish_site(action)
+    elif result == "skipped":
+        state.data["summary"]["skipped"] += 1
+        state.log(step, site, {"tool": "skip"}, "skipped", shot, 0, "user")
     print(f"  = {site}: {result} ({step} steps)")
     return result
 
@@ -242,7 +252,7 @@ def main():
 
     state.flush()
     s = state.data["summary"]
-    print(f"\n완료: 변경 {s['changed']} · 탈퇴 {s['withdrawn']} · {s['elapsed_s']}s · "
+    print(f"\n완료: 변경 {s['changed']} · 탈퇴 {s['withdrawn']} · 건너뜀 {s['skipped']} · {s['elapsed_s']}s · "
           f"외부 전송 검사 {s['outbound_checked']}건 · 평문 전송 {s['plaintext_sent']}건")
     if state.data["leaks"]:
         print("  !! 평문 노출:", state.data["leaks"])

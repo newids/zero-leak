@@ -269,12 +269,12 @@ function renderRisk(d){
 }
 function renderRun(d){
   const st=d.state||{}, steps=st.steps||[], risk=d.risk||[];
-  const bySite={}; steps.forEach(s=>{bySite[s.site]=bySite[s.site]||{n:0,done:false,handoff:0};bySite[s.site].n=s.n;if(s.status==="done")bySite[s.site].done=true;if(s.status==="handoff")bySite[s.site].handoff++});
+  const bySite={}; steps.forEach(s=>{bySite[s.site]=bySite[s.site]||{n:0,done:false,skipped:false,handoff:0};bySite[s.site].n=s.n;if(s.status==="done")bySite[s.site].done=true;if(s.status==="skipped")bySite[s.site].skipped=true;if(s.status==="handoff")bySite[s.site].handoff++});
   $("#runCards").innerHTML=risk.map(x=>{const b=bySite[x.site]||{n:0};const isCur=st.current?.site===x.site&&!b.done;
     const tot=x.action==="change"?9:8, n=Math.min(b.n||0,tot);
-    const label=b.done?"완료":isCur?`${actKo(x.action)} 중 · ${n}단계`:b.n?"대기":"대기 중";
+    const label=b.done?"완료":b.skipped?"건너뜀":isCur?`${actKo(x.action)} 중 · ${n}단계`:b.n?"대기":"대기 중";
     const bars=Array.from({length:tot},(_,i)=>`<i class="${i<n-1||b.done?'done':i===n-1?'now':''}"></i>`).join("");
-    return `<div class="card"><div class="row">${ic(x.site)}<div class="grow"><b>${x.site}</b><div class="muted">${actKo(x.action)}</div></div><span class="pill ${b.done?'guard':'warn'}">${label}</span></div><div class="steps">${bars}</div></div>`}).join("");
+    return `<div class="card"><div class="row">${ic(x.site)}<div class="grow"><b>${x.site}</b><div class="muted">${actKo(x.action)}</div></div><span class="pill ${b.done?'guard':b.skipped?'':'warn'}" ${b.skipped?'style="background:var(--line);color:var(--ink-2)"':''}>${label}</span></div><div class="steps">${bars}</div></div>`}).join("");
   const shots=d.shots||{}; const curSite=st.current?.site; const sh=shots[curSite]||Object.values(shots).sort((a,b)=>b.mtime-a.mtime)[0];
   if(sh){$("#eye").innerHTML=`<img src="/shots/${encodeURIComponent(sh.file)}?t=${sh.mtime}" alt="">${d.running?'<div class="scan"></div>':''}<div class="tag">${curSite||""} · ${sh.step}단계 · 비밀번호 칸은 가려짐</div>`}
   const last=steps.slice(-3).map(s=>{const a=s.action_json;const w=a.tool==="click"?"버튼 선택":a.tool==="fill"?"입력":a.tool==="handoff"?"확인 요청":"완료";return `<b>${s.site}</b> ${s.n}단계 · ${w}`}).join("<br>");
@@ -285,7 +285,7 @@ function renderDone(d){
   const s=d.state?.summary||{}, steps=d.state?.steps||[];
   $("#dChanged").textContent=s.changed||0;$("#dLeft").textContent=s.withdrawn||0;$("#dTime").textContent=Math.round(s.elapsed_s||0)+"초";
   $("#proof").textContent=(s.plaintext_sent||0)===0?`비밀번호가 외부로 전송된 기록 0건 (${s.outbound_checked||0}건 검사)`:`주의: 외부 전송 ${s.plaintext_sent}건`;
-  $("#doneList").innerHTML=steps.filter(x=>x.status==="done").map(x=>`<div class="card row">${ic(x.site)}<div class="grow"><b>${x.site}</b><div class="muted">${actKo(x.action_json.action||(x.site.includes("웹하드")?"withdraw":"change"))} · ${x.n}단계 · ${x.ts.slice(11,16)}</div></div><span class="pill guard">완료</span></div>`).join("");
+  $("#doneList").innerHTML=steps.filter(x=>x.status==="done"||x.status==="skipped").map(x=>`<div class="card row">${ic(x.site)}<div class="grow"><b>${x.site}</b><div class="muted">${actKo(x.action_json.action||(x.site.includes("웹하드")?"withdraw":"change"))} · ${x.status==="skipped"?"사용자가 건너뜀":x.n+"단계"} · ${x.ts.slice(11,16)}</div></div><span class="pill ${x.status==="done"?"guard":""}" ${x.status==="skipped"?'style="background:var(--line);color:var(--ink-2)"':''}>${x.status==="done"?"완료":"건너뜀"}</span></div>`).join("");
 }
 function sheet(on,p){
   $("#sheet").classList.toggle("on",on);$("#scrim").classList.toggle("on",on);
@@ -303,14 +303,14 @@ async function tick(){
   if(cur==="run"){renderRun(d);
     if(d.pending&&!$("#sheet").classList.contains("on")) sheet(true,d.pending);
     if(!d.pending) sheet(false);
-    const s=d.state?.summary; if(!d.running&&s&&(s.changed+s.withdrawn)>=s.sites&&s.sites>0&&!doneShown){doneShown=true;setTimeout(()=>{renderDone(d);show("done")},900)}
+    const s=d.state?.summary; if(!d.running&&s&&(s.changed+s.withdrawn+(s.skipped||0))>=s.sites&&s.sites>0&&!doneShown){doneShown=true;setTimeout(()=>{renderDone(d);show("done")},900)}
   }
 }
 $("#simBtn").onclick=async()=>{await api("/api/detect",{});const d=await api("/api/state");window._last=d;renderRisk(d);show("risk")};
 $("#laterBtn").onclick=()=>show("home");
 $("#protectBtn").onclick=async()=>{doneShown=false;$("#runCards").innerHTML="";$("#eye").innerHTML='<div class="empty">곧 시작합니다</div>';$("#runLog").innerHTML="";await api("/api/protect",{provider:"mock"});show("run")};
 $("#approveBtn").onclick=async()=>{await api("/api/approve",{site:$("#approveBtn").dataset.site});sheet(false)};
-$("#skipBtn").onclick=()=>sheet(false);
+$("#skipBtn").onclick=async()=>{await api("/api/skip",{site:$("#approveBtn").dataset.site});sheet(false)};
 $("#homeBtn").onclick=()=>show("home");
 $("#resetBtn").onclick=async()=>{await api("/api/reset",{});doneShown=false;show("home")};
 tick(); setInterval(tick,1000);

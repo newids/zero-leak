@@ -76,6 +76,12 @@ leak.json ──► detect.py ──► risk.json ──► agent.py ──► s
 사용자가 대시보드에서 승인 버튼을 누르면 생성된다. 내용은 승인한 site 이름 한 줄.
 agent.py는 `handoff` 뒤 이 파일이 나타날 때까지 대기한다.
 
+## skip.flag  (app.py 생성 → agent.py가 존재 여부로 읽음)
+
+승인 대기 중 사용자가 '이 사이트는 건너뛰기'를 누르면 생성된다. 내용은 site 이름 한 줄.
+agent.py는 그 사이트를 `skipped` 로 끝내고 다음 사이트로 넘어간다. summary.skipped 가 1 늘고
+steps 에 `{"tool":"skip"}` / status `skipped` 가 기록된다. 완료 조건은 changed+withdrawn+skipped ≥ sites.
+
 ## shots/  (agent.py 작성 → app.py가 표시)
 
 파일명: `shots/<site>_step_<NN>.png`. 비밀번호 입력란은 이미 검은 사각형으로 가려진 상태.
