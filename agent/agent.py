@@ -251,6 +251,10 @@ def main():
                     help="브라우저 크기 WxH. 실제 사이트는 1280x800 권장")
     ap.add_argument("--approve-enter", action="store_true",
                     help="승인 대기 때 대시보드 대신 터미널 Enter 로 승인 (실제 사이트 테스트용)")
+    ap.add_argument("--channel", choices=["chromium", "chrome"], default="chromium",
+                    help="chrome = 설치된 Google Chrome 사용. 실제 사이트의 봇 검증(Cloudflare 등)은 진짜 브라우저로 통과")
+    ap.add_argument("--user-data-dir", metavar="DIR",
+                    help="브라우저 프로필 폴더 (지속 세션). 실제 사이트 테스트용 전용 폴더를 쓰고 개인 프로필은 쓰지 않는다")
     args = ap.parse_args()
     if not args.site and not args.all and not args.url:
         ap.error("--site, --all 또는 --url 필요")
@@ -275,19 +279,28 @@ def main():
     print(f"provider={llm.provider}  targets={[t['site'] for t in targets]}")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=not args.headful)
         ctx_kw = {"viewport": dict(VIEWPORT)}
         if args.record:
             ctx_kw |= {"record_video_dir": args.record,
                        "record_video_size": dict(VIEWPORT)}
-        context = browser.new_context(**ctx_kw)
-        page = context.new_page()
+        launch_kw = {"headless": not args.headful}
+        if args.channel == "chrome":
+            launch_kw["channel"] = "chrome"
+        if args.user_data_dir:          # 지속 프로필: 사용자 기기의 진짜 브라우저 세션으로 동작 (분리 실행의 '손')
+            browser = None
+            context = p.chromium.launch_persistent_context(args.user_data_dir, **launch_kw, **ctx_kw)
+            page = context.pages[0] if context.pages else context.new_page()
+        else:
+            browser = p.chromium.launch(**launch_kw)
+            context = browser.new_context(**ctx_kw)
+            page = context.new_page()
         attach_network_monitor(page, state)
         for t in targets:
             run_site(page, llm, state, t["site"], t["url"], t["action"],
                      confirm=not args.no_confirm)
         context.close()
-        browser.close()
+        if browser:
+            browser.close()
 
     state.flush()
     s = state.data["summary"]
