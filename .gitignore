@@ -228,3 +228,6 @@ recordings/
 docs/archify/review-*/
 docs/archify/*.finalize*.json
 docs/archify/*.browser-check.json
+
+# macOS
+.DS_Store
