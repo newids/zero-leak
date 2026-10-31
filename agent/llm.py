@@ -23,7 +23,8 @@ BLOCK_WORDS = ["결제", "송금", "구매", "충전", "pay", "구독", "포인�
                "외부", "http://", "https://", "동의하고 계속", "전체 동의", "유지하고"]
 
 # 완료 판정 문구 (헤딩·상태 영역에서 찾음)
-DONE_MARKERS = ["변경 완료", "탈퇴 완료", "처리되었습니다", "완료되었습니다"]
+DONE_MARKERS = ["변경 완료", "탈퇴 완료", "처리되었습니다", "완료되었습니다",
+                "변경되었습니다", "변경이 완료", "수정되었습니다", "저장되었습니다", "탈퇴되었습니다"]
 
 
 @dataclass
@@ -113,11 +114,11 @@ def _mock_decide(goal: str, scr: Screen, history: list[str]) -> Action:
 
     # 2) 목표로 가는 버튼/링크
     if goal == "change":
-        wants = ["비밀번호 변경", "변경하기", "회원정보", "정보 변경", "계정", "마이페이지", "보안", "로그인",
-                 "저장", "확인", "제출"]
+        wants = ["비밀번호 변경", "변경하기", "회원정보", "정보 변경", "계정", "설정", "마이페이지", "보안",
+                 "로그인", "저장", "확인", "제출"]
     else:
-        wants = ["그래도 탈퇴", "포기하고 떠나기", "회원 탈퇴", "탈퇴", "계정 관리", "계정",
-                 "설정", "확인", "제출"]
+        wants = ["그래도 탈퇴", "포기하고 떠나기", "회원 탈퇴", "탈퇴", "계정 관리", "계정", "정보 변경",
+                 "설정", "마이페이지", "로그인", "확인", "제출"]
     for w in wants:
         for el in buttons:
             if w in el["label"]:
@@ -141,6 +142,9 @@ def _system_prompt() -> str:
         "'비밀번호 재설정' '비밀번호 찾기' '아이디 찾기'는 비밀번호를 잊은 사람용이다. "
         "목표가 변경이면 로그인한 뒤 마이페이지·회원정보·계정 정보·정보 변경·보안 메뉴로 들어가라. "
         "'정보 변경' '회원정보 수정' '계정 정보' '보안 설정' 같은 메뉴 이동은 안전하다. "
+        "광고·안내 팝업이 화면을 덮고 있으면(헤딩에 '팝업' 표시) '닫기' 'X' '다시 보지 않기'를 먼저 눌러라. "
+        "지난 단계의 'handoff:사람이 처리함'은 캡차·인증을 사람이 이미 끝냈다는 뜻이다. 같은 이유로 다시 handoff 하지 말고 지금 화면 기준으로 진행하라. "
+        "'마이리디' '마이페이지' '내 서재' '로그아웃' 같은 메뉴가 보이면 이미 로그인된 상태다. 사람 모양 아이콘은 보통 계정 메뉴다. "
         "'혜택을 유지하고 계속 이용하기' '조금 더 써볼게요' 같은 문구는 탈퇴를 막는 유인 버튼이다. "
         "탈퇴가 목표면 작고 흐린 '포기하고 떠나기' '그래도 탈퇴' 쪽을 골라라. "
         "캡차·본인인증·최종 결제 확인이 뜨면 handoff. "
@@ -280,11 +284,14 @@ class LLM:
         # -- 반복 감지: 확신하며 틀리는 경우(신뢰도 높음)는 승격으로 못 잡는다. 같은 동작이 반복되면 승격 또는 handoff.
         if act.tool in ("click", "fill") and act.n is not None:
             label = next((e["label"] for e in scr.elements if e["n"] == act.n), "")
-            if history.count(f"{scr.path}|{label}") >= self.REPEAT_LIMIT:
+            # 사람이 개입한(handoff 승인) 뒤로는 상황이 바뀌었으니 그 이후 기록만 센다
+            cut = max((i for i, h in enumerate(history) if "|handoff:" in h), default=-1)
+            recent = history[cut + 1:]
+            if recent.count(f"{scr.path}|{label}") >= self.REPEAT_LIMIT:
                 if p in ("vllm", "openai") and os.getenv("ANTHROPIC_API_KEY"):
                     act, self.last_route = self._claude_decide(goal, scr, history, img_path), f"{p}→claude(반복)"
                     label2 = next((e["label"] for e in scr.elements if e["n"] == act.n), "") if act.n is not None else ""
-                    if act.tool in ("click", "fill") and history.count(f"{scr.path}|{label2}") >= self.REPEAT_LIMIT:
+                    if act.tool in ("click", "fill") and recent.count(f"{scr.path}|{label2}") >= self.REPEAT_LIMIT:
                         act = Action("handoff", reason=f"'{label2}' 반복 — 승격 후에도 같은 선택", confidence=0.0)
                 else:
                     act = Action("handoff", reason=f"'{label}' 을(를) {self.REPEAT_LIMIT}번 넘게 반복", confidence=0.0)

@@ -12,7 +12,7 @@ Oct 31, 2026 · @JS Choi
 
 | 사람 | 보유 플랜 | 주력 도구 | 보조 도구 | 맡는 것 |
 | --- | --- | --- | --- | --- |
-| 개발자 | Claude Max, Gemini Pro | Claude Code 데스크톱 + CLI (Max라 세션 두 개를 넉넉히 돌림) | Gemini 에이전트: 긴 로그·전체 저장소 읽기, 교차 리뷰, README 초안 | `agent.py`, `llm.py`, A100 vLLM, 통합·병합 |
+| 개발자 | Claude Max, Gemini Pro | Claude Code 데스크톱 + CLI (Max라 세션 두 개를 넉넉히 돌림) | Gemini 에이전트: 긴 로그·전체 저장소 읽기, 교차 리뷰, README 초안 | `agent.py`, `llm.py`, L4 vLLM, 통합·병합 |
 | 기획자 | Claude Max, ChatGPT Pro | Codex CLI·데스크톱 (Pro라 샌드박스 실행 루프를 제한 없이) | Claude Code: 교차 리뷰, 유출 JSON 생성, 레드팀 답변 카드 | `testbed/`, `detect.py`, `bench.py`, 리뷰 전담 |
 | 마케터 | Claude Pro, ChatGPT Plus | Claude Code (Pro는 한도가 작으므로 짧은 세션으로 `app.py`만) | ChatGPT: 슬라이드 본문, 영상 대본·자막, 서비스 카피. Codex(Plus)는 `app.py` 교차 리뷰 한 번 정도 | `app.py`, 슬라이드, 영상 |
 
@@ -21,7 +21,7 @@ Oct 31, 2026 · @JS Choi
 | 도구 | 잘하는 일 | 이 프로젝트에서 쓰는 곳 |
 | --- | --- | --- |
 | Claude Code (데스크톱·웹) | 긴 작업 위임, 화면 보며 설계 다듬기, 브라우저 확장으로 웹 UI 확인 | `agent.py`(개발자), `app.py`(마케터), 교차 리뷰(기획자) |
-| Claude Code CLI | `--worktree` 병렬 세션, `-p` 헤드리스, SSH로 서버에서 직접 작업 | A100 세팅, `llm.py`, 병합(개발자) |
+| Claude Code CLI | `--worktree` 병렬 세션, `-p` 헤드리스, SSH로 서버에서 직접 작업 | L4 세팅, `llm.py`, 병합(개발자) |
 | Codex (ChatGPT Pro·Plus) | 샌드박스에서 테스트 돌려 가며 스스로 고치는 루프, 독립 파일 단위 작업 | `testbed/`, `detect.py`, `bench.py`(기획자), `app.py` 리뷰(마케터) |
 | Gemini 에이전트 (Gemini Pro) | 긴 문맥 한 번에 읽기, 저장소 전체 대조, 문서 초안 | 통합 전 형식 불일치 검사, `agent.py` 리뷰, README(개발자) |
 | ChatGPT (Pro·Plus) | 비코드 산출물, 카피, 대본 | 슬라이드 본문, 영상 대본·자막(마케터), 레드팀 카드 보조(기획자) |
@@ -101,7 +101,7 @@ click(n) · fill(n, field) · handoff(reason) · done()
 
 ### 한 사람 안에서의 병렬
 
-개발자는 세션 두 개를 띄운다. 하나는 Claude Code 데스크톱에서 `agent.py` 작업, 다른 하나는 CLI로 A100에 SSH 접속해 vLLM 상태를 보는 세션. Max 플랜이라 둘을 동시에 돌려도 한도 걱정이 적다. 기획자는 Codex로 `testbed/`를 만드는 동안 Claude Code에 유출 JSON 생성을 맡긴다. 마케터는 Claude Code로 `app.py`를 만드는 동안 ChatGPT에서 슬라이드 본문을 뽑고, `app.py`가 끝나면 Claude Code 세션을 닫아 한도를 아낀다. 기다리는 시간에 다른 도구에 다음 일을 걸어 두는 것이 '동시 이용'의 실체다.
+개발자는 세션 두 개를 띄운다. 하나는 Claude Code 데스크톱에서 `agent.py` 작업, 다른 하나는 CLI로 L4에 SSH 접속해 vLLM 상태를 보는 세션. Max 플랜이라 둘을 동시에 돌려도 한도 걱정이 적다. 기획자는 Codex로 `testbed/`를 만드는 동안 Claude Code에 유출 JSON 생성을 맡긴다. 마케터는 Claude Code로 `app.py`를 만드는 동안 ChatGPT에서 슬라이드 본문을 뽑고, `app.py`가 끝나면 Claude Code 세션을 닫아 한도를 아낀다. 기다리는 시간에 다른 도구에 다음 일을 걸어 두는 것이 '동시 이용'의 실체다.
 
 ## 4. 프롬프트 템플릿 3종
 
@@ -147,22 +147,22 @@ click(n) · fill(n, field) · handoff(reason) · done()
 | `testbed/` | Codex(기획자) → Claude Code(기획자) | ① 쇼핑몰 블루프린트 5라우트 ② 웹하드 블루프린트 6라우트(팝업 2회 포함) ③ `seed.json` 계정 10개 ④ 두 블루프린트를 묶는 `app.py` | 브라우저에서 손으로 변경·탈퇴 끝까지. 팝업 문구가 기획자 표와 글자까지 같은지 | 2.5h |
 | `detect.py` | Codex(기획자) → Claude Code(기획자) | ① 해시 앞 5자리 대조 함수 + 테스트 ② 변형 규칙 5종 생성기 + 테스트 ③ `risk.json` 출력 | `pytest` 통과, 표적 3개 검출, 출력에 평문 없음 | 2h |
 | `agent.py` | Claude Code 데스크톱(개발자) → Gemini(개발자) | ① Playwright로 사이트 열고 스크린샷만 ② JS 주입: 클릭 요소 번호 배지, 비밀번호 입력란 마스킹 ③ `llm.py` 호출해 액션 하나 받아 실행 ④ 루프 + `state.json` ⑤ `handoff` 승인 대기 | 각 단계마다 `shots/`에 PNG가 쌓이는지. ③에서 쇼핑몰 1단계 성공, ④에서 끝까지 | 5h |
-| `llm.py` | Claude Code CLI(개발자) → Gemini(개발자) | ① OpenAI 호환 클라이언트로 A100 vLLM 호출 ② 도구 스키마 4개 ③ Claude 승격(신뢰도 낮을 때) ④ 가드레일 2차 호출 | 가짜 화면 1장으로 `click(3)` 같은 JSON이 돌아오는지. 결제 버튼 화면을 넣어 가드레일이 막는지 | 1.5h |
+| `llm.py` | Claude Code CLI(개발자) → Gemini(개발자) | ① OpenAI 호환 클라이언트로 L4 vLLM 호출 ② 도구 스키마 4개 ③ Claude 승격(신뢰도 낮을 때) ④ 가드레일 2차 호출 | 가짜 화면 1장으로 `click(3)` 같은 JSON이 돌아오는지. 결제 버튼 화면을 넣어 가드레일이 막는지 | 1.5h |
 | `app.py` | Claude Code(마케터, 짧은 세션 3\~4회) → Codex(마케터, ChatGPT Plus) | ① 3열 레이아웃 + 가짜 데이터 ② `risk.json` 읽어 왼쪽 그래프 ③ `shots/` 최신 PNG 2장 1초 갱신 ④ 승인 버튼이 `approve.flag` 생성 ⑤ `state.json`으로 완료 리포트 | 예시 JSON만으로 화면이 다 그려지는지. 에이전트 없이 먼저 완성 | 2.5h |
 | `bench.py` | Codex(기획자) → 리뷰 생략 | `state.json`을 읽어 소요 시간·단계 수·응답 시간을 Markdown 표로 | 샘플 `state.json`으로 표가 나오는지 | 0.5h |
 
-### A100 vLLM (개발자, Claude Code CLI)
+### L4 vLLM (개발자, Claude Code CLI)
 
 SSH로 들어간 터미널에서 `claude`를 띄우고 이렇게 시킨다.
 
 ```
-이 서버(A100 80GB, Ubuntu)에 vLLM을 Docker로 띄워라.
-모델: Qwen/Qwen2.5-VL-7B-Instruct, 포트 8000, OpenAI 호환 API, 이미지 입력 활성화.
+이 서버(NVIDIA L4 23GB, Ubuntu, Docker 없음)에 vLLM을 호스트 venv로 띄워라.
+모델: Qwen/Qwen2.5-VL-7B-Instruct-AWQ, 포트 8000, OpenAI 호환 API, 이미지 입력 활성화.
 확인: curl로 /v1/models 응답과, 샘플 PNG 한 장을 넣은 chat/completions 응답 시간을 보여라.
 실패하면 원인만 보고하고 다른 모델로 바꾸지 마라.
 ```
 
-30분 안에 안 뜨면 `LLM_PROVIDER=claude`로 가고 A100은 호스팅용으로만 쓴다. 구현 계획 6절의 대안표와 같다.
+30분 안에 안 뜨면 `LLM_PROVIDER=claude`로 가고 L4는 호스팅용으로만 쓴다. 구현 계획 6절의 대안표와 같다.
 
 ## 6. 검증 루프와 교차 리뷰
 
