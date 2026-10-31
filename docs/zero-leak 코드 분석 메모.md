@@ -216,3 +216,20 @@ confidence 분포와 임계값을 정한다. 이게 "A100(L4) 1차 판단 + Clau
 승격률 6/17 = 35%. 승격 단계는 ~2.0s, Qwen 단독 단계는 ~0.6s.
 
 probe (테스트베드에서 케이스 자동 생성, 6케이스): mock 6/6 · Claude 6/6 · vLLM(+승격) 6/6 (prep 선택자 수정 후).
+
+---
+
+# 실제 사이트 테스트 (리디북스, 2026-10-31 밤, 본인 계정·팀 합의)
+
+`agent.py --url https://ridibooks.com/account/login --allow-host ridibooks.com --provider vllm --headful --approve-enter --channel chrome --user-data-dir ~/.zeroleak-chrome --viewport 1280x800`
+계정값은 `.env` 의 `ZL_*` 환경변수에서만 읽음. 비밀번호 평문 전송 0건(매 주행).
+
+| 차수 | 결과 | 막힌 곳 | 수정 |
+| --- | --- | --- | --- |
+| 1 | 로그인·이메일 인증 통과 후 홈에서 정지 | 광고 팝업에 가려진 '마이리디' 헛클릭, handoff 사유 문구가 history 에 남아 모델이 같은 이유로 반복, 반복 감지가 사람 개입을 모름 | som.js 가려진 요소 제외(elementFromPoint), handoff 사유 미기록, 반복 감지는 마지막 handoff 이후만 |
+| 2 | 로그인 클릭 직후 크래시 | 이동 중 som.js 실행 → Execution context destroyed | load 대기 + 재시도, goto domcontentloaded |
+| 3 | **비밀번호 변경 성공 (14단계)** 후 재제출 시도 | 빈 칸 남기고 제출(9·11), 첫 승인 뒤 무승인 제출, 완료 페이지 없는 사이트라 성공을 모름 | 빈 비밀번호 칸 먼저 채우기(규칙), 제출마다 승인, 제출 후 같은 화면 규칙 판정(재제출 금지) |
+
+관찰: Cloudflare 봇 검증은 설치된 Chrome + 헤드풀로 통과(위장 없음). 로그인은 새 기기마다 이메일 코드 요구 → handoff 로 사람이 입력.
+리디 경로: 로그인 → 마이리디 → 내 정보 관리(/account/modify) → 현재/새/확인 3칸 → '비밀번호 변경'. 완료 후 같은 페이지 유지.
+Qwen 단독 판단: 메뉴 이동·제출 클릭(0.4~1.2s). Claude 승격: 입력 칸 전부(1.6~2.8s).
