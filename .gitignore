@@ -221,7 +221,7 @@ __marimo__/
 
 # --- Zero-Leak
 .env
-shots/*.png
+shots/
 shared/approve.flag
 shared/skip.flag
 shared/state.json
