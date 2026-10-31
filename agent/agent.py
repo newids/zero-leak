@@ -94,7 +94,8 @@ def attach_network_monitor(page, state: State):
     secrets = [v for k, v in FIELD_VALUES.items() if "password" in k]
     def on_request(req):
         host = urlparse(req.url).hostname or ""
-        if host in ALLOWED_HOSTS:       # 조작 대상 사이트 자신에게 비밀번호를 보내는 건 정상 (로그인·변경 폼)
+        # 조작 대상 사이트 자신(하위 도메인 포함: account.example.com)에게 비밀번호를 보내는 건 정상 (로그인·변경 폼)
+        if host in ALLOWED_HOSTS or any(host.endswith("." + h) for h in ALLOWED_HOSTS):
             return
         body = (req.post_data or "") + req.url
         for s in secrets:
