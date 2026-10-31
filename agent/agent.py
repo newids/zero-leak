@@ -22,7 +22,7 @@ import argparse, datetime, json, os, pathlib, sys, time
 from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright, Error as PWError
-from llm import LLM, MONITOR, Screen
+from llm import LLM, MONITOR, Screen, Action
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHARED = ROOT / "shared"
@@ -39,6 +39,23 @@ APPROVE_STDIN = False                   # --approve-enter: 승인 대기 중 터
 VIEWPORT = {"width": 720, "height": 460}
 # 최종 제출 버튼 앞에서 사람 승인을 받는다 (데모: "변경 직전에 멈추고 [변경 확정]").
 CONFIRM_WORDS = ["변경하기", "비밀번호 변경", "회원 탈퇴", "탈퇴하기", "저장", "제출"]
+# 제출 뒤 같은 화면에 이런 문구가 보이면 실패한 것 — 다시 입력하지 않고 사람에게 넘긴다
+ERROR_WORDS = ["일치하지 않", "사용할 수 없", "올바르지 않", "오류", "실패", "잘못", "다시 입력"]
+
+
+def is_submit(target: dict) -> bool:
+    return target["kind"] == "button" and any(w in target["label"] for w in CONFIRM_WORDS)
+
+
+def password_inputs(scr: Screen, empty_only: bool) -> list[dict]:
+    pw = [e for e in scr.elements if e["kind"] == "input"
+          and ("비밀번호" in e["label"] or "password" in e["label"].lower())]
+    return [e for e in pw if "(입력됨)" not in e["label"]] if empty_only else pw
+
+
+def password_field_for(label: str) -> str:
+    low = label.lower()
+    return "current_password" if any(k in label for k in ("현재", "기존", "지금")) or "current" in low else "new_password"
 
 # 데모용 입력 값 (실제 비밀번호 아님). 실제 서비스에서는 OS 키체인에서 읽는다.
 # 실제 사이트 테스트: ZL_EMAIL / ZL_CURRENT_PASSWORD / ZL_NEW_PASSWORD / ZL_REASON 환경변수가 있으면 그 값을 쓴다.
@@ -169,14 +186,28 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
     history: list[str] = []          # "<path>|<label>"
     result = "incomplete"
     step = 0
-    confirmed = False                # 이 사이트의 최종 제출을 승인받았는가
+    submitted_path = None            # 최종 제출을 누른 경로. 같은 화면에 머물면 완료/오류를 규칙으로 판정한다
 
     for step in range(1, MAX_STEPS + 1):
         page.wait_for_timeout(200)
         shot = f"shots/{site}_step_{step:02d}.png"
         scr = capture(page, ROOT / shot)
 
-        act = llm.decide(action, scr, history, img_path=str(ROOT / shot))
+        if submitted_path and scr.path == submitted_path:
+            # 제출 뒤에도 같은 화면: 완료 페이지가 없는 사이트(리디북스 등). 다시 입력·재제출은 절대 하지 않는다.
+            errs = [h for h in scr.headings if any(w in h for w in ERROR_WORDS)]
+            pw = password_inputs(scr, empty_only=False)
+            if scr.is_done():
+                act, llm.last_route = Action("done", confidence=1.0), "rule:완료 문구"
+            elif errs:
+                act, llm.last_route = Action("handoff", reason=f"제출 후 오류 표시: {errs[0][:60]}", confidence=0.0), "rule:제출 후 오류"
+            elif pw and all("(입력됨)" not in e["label"] for e in pw):
+                act, llm.last_route = Action("done", reason="제출 후 입력란 초기화", confidence=0.9), "rule:폼 초기화"
+            else:
+                act, llm.last_route = Action("handoff", reason="제출 후 완료를 확인할 수 없음 — 사람이 확인", confidence=0.0), "rule:제출 후 미확인"
+            llm.last_ms = 0
+        else:
+            act = llm.decide(action, scr, history, img_path=str(ROOT / shot))
         state.set_current(site, action, step, "running")
         print(f"  [{step:02d}] {scr.path:<20} {act.as_dict()}  conf={act.confidence:.2f} "
               f"{llm.last_ms}ms via {llm.last_route}")
@@ -190,6 +221,11 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
             state.log(step, site, act.as_dict(), "handoff", shot, llm.last_ms, llm.last_route)
             r = wait_for_approval(site)
             if r == "approved":
+                if submitted_path and scr.path == submitted_path:
+                    # 제출 뒤 사람이 확인하고 승인 = 완료. 재입력으로 돌아가지 않는다.
+                    state.log(step, site, {"tool": "done", "reason": "제출 후 사람이 확인"}, "done", shot, 0, "user")
+                    result = "done"
+                    break
                 # 사유 문구는 남기지 않는다 — 남기면 모델이 다음 단계에서 그 문장을 보고 같은 이유로 또 handoff 한다.
                 # 이 표식은 llm.decide 의 반복 감지도 초기화한다 (사람이 개입해 상황이 바뀌었으므로).
                 history.append(f"{scr.path}|handoff:사람이 처리함")
@@ -203,22 +239,32 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
             history.append(f"{scr.path}|bad_n:{act.n}")
             continue
 
-        # 최종 제출 버튼이면 먼저 사람 승인 (핸드오프)
-        if confirm and not confirmed and act.tool == "click" and target["kind"] == "button" \
-                and any(w in target["label"] for w in CONFIRM_WORDS):
+        # 빈 비밀번호 입력란이 남았는데 제출을 누르려 하면 가로채서 그 칸부터 채운다 (모델이 확신하며 조기 제출하는 일이 잦다)
+        if act.tool == "click" and is_submit(target):
+            empties = password_inputs(scr, empty_only=True)
+            if empties:
+                e = empties[0]
+                act = Action("fill", n=e["n"], field=password_field_for(e["label"]), confidence=1.0)
+                target = e
+                llm.last_route += "+rule:빈칸먼저"
+                print(f"       ↺ 제출 전 빈 입력란 '{e['label']}' 먼저 채움 → {act.as_dict()}")
+
+        # 최종 제출 버튼이면 매번 사람 승인 (핸드오프). 한 번 승인으로 다음 제출까지 열어 두지 않는다.
+        if confirm and act.tool == "click" and is_submit(target):
             ask = {"tool": "handoff", "reason": f"'{target['label']}' 최종 확정 전 승인 필요"}
             state.log(step, site, ask, "handoff", shot, llm.last_ms, llm.last_route)
             r = wait_for_approval(site)
             if r != "approved":
                 result = "skipped" if r == "skipped" else "handoff_timeout"
                 break
-            confirmed = True
 
         try:
             page.mouse.click(target["x"], target["y"])
             if act.tool == "fill":
                 page.keyboard.press("Control+A")
                 page.keyboard.type(FIELD_VALUES.get(act.field, ""), delay=5)
+            elif is_submit(target):
+                submitted_path = scr.path
             history.append(f"{scr.path}|{target['label']}")
             state.log(step, site, act.as_dict(), "ok", shot, llm.last_ms, llm.last_route)
         except Exception as e:
