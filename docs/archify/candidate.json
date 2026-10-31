@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Z-LAS 서비스 아키텍처 — 분리 실행",
+    "title": "Zero-Leak 서비스 아키텍처 — 분리 실행",
     "output": "docs/archify/zlas-architecture.html",
     "quality_profile": "showcase",
     "locale": "ko"
@@ -26,7 +26,7 @@
     {
       "id": "app",
       "type": "frontend",
-      "label": "Z-LAS 앱",
+      "label": "Zero-Leak 앱",
       "sublabel": "iOS · Android · 데스크톱",
       "pos": [
         260,
@@ -40,8 +40,8 @@
     {
       "id": "agent",
       "type": "backend",
-      "label": "로컬 에이전트",
-      "sublabel": "브라우저 조작 · 마스킹",
+      "label": "웹뷰 에이전트",
+      "sublabel": "iOS·Android 앱 내 WebView",
       "pos": [
         490,
         180
@@ -50,13 +50,13 @@
         150,
         64
       ],
-      "tag": "손"
+      "tag": "손 · 모바일"
     },
     {
       "id": "vault",
       "type": "database",
       "label": "키체인 볼트",
-      "sublabel": "비밀번호 평문 · 해시",
+      "sublabel": "평문 · 자동완성 확장",
       "pos": [
         490,
         320
@@ -167,15 +167,31 @@
         150,
         64
       ]
+    },
+    {
+      "id": "agent_pc",
+      "type": "backend",
+      "label": "데스크톱 에이전트",
+      "sublabel": "Playwright · 현재 코드",
+      "pos": [
+        260,
+        320
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "손 · PC"
     }
   ],
   "boundaries": [
     {
       "kind": "security-group",
-      "label": "사용자 기기 — 평문 보관·입력",
+      "label": "사용자 기기 — 평문 보관·입력 (앱 또는 PC)",
       "wraps": [
         "app",
         "agent",
+        "agent_pc",
         "vault"
       ]
     },
@@ -274,6 +290,22 @@
       "variant": "dashed",
       "fromSide": "top",
       "toSide": "bottom"
+    },
+    {
+      "id": "app-agentpc",
+      "from": "app",
+      "to": "agent_pc",
+      "label": "PC 선택 시",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "agentpc-vault",
+      "from": "agent_pc",
+      "to": "vault",
+      "label": "평문 읽기 · 쓰기",
+      "variant": "security"
     }
   ],
   "cards": [
@@ -281,9 +313,10 @@
       "dot": "emerald",
       "title": "분리 실행",
       "items": [
-        "기기: 비밀번호 보관·입력, 사이트 접속(사용자 IP·세션)",
+        "모바일: 앱 안의 WebView를 JS 주입·스냅샷으로 조작 (OS가 허용하는 유일한 방식)",
+        "PC: Playwright가 로컬 브라우저 조작 (해커톤 구현)",
         "클라우드: 가려진 화면과 번호만 보고 좌표 JSON 반환",
-        "액션은 click · fill · handoff · done 네 가지뿐"
+        "사이트 접속은 항상 사용자 IP·세션"
       ]
     },
     {
@@ -311,6 +344,17 @@
         "같은 A100에서 QLoRA 파인튜닝, 화면 16개 병렬",
         "Passkey 전환, 패스워드 매니저 연동",
         "기업용: 임직원 계정 일괄 격리"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "모바일 제약과 대응",
+      "items": [
+        "다른 앱·사파리 조작 불가 → 앱 내 WebView만",
+        "처리 중 앱을 열어 둬야 함 → 승인 흐름과 자연스럽게 결합",
+        "WebView 차단 사이트 → 직접 변경 안내로 폴백",
+        "/.well-known/change-password 로 변경 페이지 직행",
+        "Credential Provider·Autofill 확장으로 자동완성·저장"
       ]
     }
   ]

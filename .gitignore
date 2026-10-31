@@ -219,7 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# --- Z-LAS
+# --- Zero-Leak
 .env
 shots/*.png
 shared/approve.flag

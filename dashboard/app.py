@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Z-LAS 관제 대시보드 (마케터 담당, Streamlit 1페이지).
+Zero-Leak 관제 대시보드 (마케터 담당, Streamlit 1페이지).
 3열: [왼쪽] 유출 탐지 → 도미노 위험 지도  [가운데] 에이전트가 보는 화면  [오른쪽] 승인·리포트
 폴더 간 통신은 파일로만: risk.json / state.json / shots/*.png 읽기, approve.flag 쓰기.
 detect.py 와 agent.py 는 subprocess 로 실행한다(함수 import 금지).
@@ -18,7 +18,7 @@ DETECT = ROOT / "testbed" / "detect.py"
 AGENT = ROOT / "agent" / "agent.py"
 PROVIDER = st.sidebar.selectbox("모델 경로", ["mock", "vllm", "claude", "openai"], index=0)
 
-st.set_page_config(page_title="Z-LAS", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Zero-Leak", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
  .block-container{padding-top:1.2rem}
  .risk-critical{background:#fde8e8;border-left:5px solid #d33;padding:8px 12px;border-radius:6px;margin:6px 0}
@@ -63,7 +63,7 @@ def agent_running() -> bool:
 
 
 # ---------------------------------------------------------------- header
-st.markdown("## 🛡️ Z-LAS — 유출 탐지 · 자율 조치 · 승인")
+st.markdown("## 🛡️ Zero-Leak — 유출 탐지 · 자율 조치 · 승인")
 left, mid, right = st.columns([1.1, 1.6, 1.1], gap="large")
 
 

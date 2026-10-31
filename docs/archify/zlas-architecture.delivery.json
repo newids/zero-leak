@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "4bf777a8-4132-4b48-8873-ad6a08b66c13",
+  "receiptId": "7ce613a2-df94-4150-b958-6bb8baaa8f11",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
   "input": "/home/claude/zlas/docs/archify/candidate.json",
   "output": "/home/claude/zlas/docs/archify/zlas-architecture.html",
   "specification": {
-    "sha256": "590d21225ff6fc4f96c9234987af75dbbfc0bd5f54e4b5f56f955abd21e35b98",
-    "bytes": 6542
+    "sha256": "8e98dc45a21ef64a52d514fb1dab64c30831f510c5e645157757d39679366742",
+    "bytes": 7801
   },
   "artifact": {
-    "sha256": "0a2c3ac5bcb6c7782a6191f68b46ab224be1f560c1d7e82cad0ddc4b67143dfb",
-    "bytes": 858272
+    "sha256": "a6cd4b03e041ea424e442bffccdbdda7473160d82790bff82f65200d3a62219b",
+    "bytes": 862971
   }
 }

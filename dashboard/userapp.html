@@ -2,135 +2,196 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Z-LAS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zero-Leak</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root{
-  --ink:#17222B; --ink-2:#4A5760; --ink-3:#8A949B;
-  --paper:#F4F5F2; --card:#FFFFFF; --line:#E3E6E1;
-  --guard:#0F7F6C; --guard-soft:#E2F2EE; --alert:#D9553F; --alert-soft:#FBE9E5;
-  --warn:#C98A14; --warn-soft:#FBF1DC;
-  --r:18px;
+  --ink:#0F1A20; --ink-2:#3F4C55; --ink-3:#86929A;
+  --paper:#F2F3EE; --card:#FFFFFF; --line:#E1E4DE;
+  --guard:#0E7C6B; --guard-deep:#0A5C50; --guard-soft:#DCEFEA;
+  --alert:#D8503A; --alert-soft:#FBE7E2;
+  --warn:#B9780E; --warn-soft:#FBEFD6;
+  --r:20px; --tab:84px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;
-  background:#1B2229;color:var(--ink);display:flex;align-items:center;justify-content:center;min-height:100vh}
+  background:#15191D;color:var(--ink);display:flex;align-items:center;justify-content:center;min-height:100vh;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 button:focus-visible{outline:3px solid var(--guard);outline-offset:2px}
 
-/* phone frame (desktop demo) */
-.phone{width:400px;height:860px;background:var(--paper);border-radius:46px;overflow:hidden;position:relative;
-  box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 10px #0E1317,0 0 0 12px #2B343B}
-@media (max-width:480px){body{background:var(--paper)}.phone{width:100%;height:100vh;border-radius:0;box-shadow:none}}
-.statusbar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600}
-.screen{position:absolute;inset:48px 0 0 0;overflow-y:auto;padding:12px 20px 110px;display:none}
-.screen.on{display:block}
-h1{font-size:26px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
-h2{font-size:17px;font-weight:700;margin:22px 0 10px}
+/* ---------- phone frame ---------- */
+.phone{width:402px;height:874px;background:var(--paper);border-radius:54px;overflow:hidden;position:relative;
+  box-shadow:0 40px 100px rgba(0,0,0,.55),0 0 0 11px #0A0D10,0 0 0 13px #30383E,inset 0 0 0 1px rgba(255,255,255,.06)}
+.phone::before{content:"";position:absolute;left:50%;top:14px;width:122px;height:34px;transform:translateX(-50%);
+  background:#0A0D10;border-radius:20px;z-index:20}
+.phone::after{content:"";position:absolute;left:50%;bottom:9px;width:134px;height:5px;transform:translateX(-50%);
+  background:var(--ink);opacity:.9;border-radius:3px;z-index:20}
+@media (max-width:480px){body{background:var(--paper)}.phone{width:100%;height:100dvh;border-radius:0;box-shadow:none}.phone::before,.phone::after{display:none}}
+
+.statusbar{height:58px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px;font-size:15px;font-weight:600;
+  position:relative;z-index:10}
+.statusbar .right{display:flex;align-items:center;gap:6px}
+.statusbar svg{display:block}
+.demo-reset{font-size:11px;color:var(--ink-3);font-weight:500;padding:3px 8px;border-radius:999px;border:1px solid var(--line);margin-left:6px;background:var(--card)}
+
+.screen{position:absolute;inset:58px 0 0 0;overflow-y:auto;overflow-x:hidden;padding:6px 20px calc(var(--tab) + 24px);display:none;
+  scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen.on{display:block;animation:in .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+h1{font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.2}
+h2{font-size:15px;font-weight:700;margin:24px 0 10px;color:var(--ink-2);letter-spacing:-.01em}
 p{font-size:15px;line-height:1.55;color:var(--ink-2)}
-.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px;border:1px solid var(--line)}
-.btn{display:block;width:100%;padding:17px;border-radius:16px;font-size:17px;font-weight:700;text-align:center;transition:transform .08s}
+.card{background:var(--card);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;border:1px solid var(--line)}
+.btn{display:block;width:100%;padding:17px;border-radius:18px;font-size:17px;font-weight:700;text-align:center;transition:transform .08s,box-shadow .2s;letter-spacing:-.01em}
 .btn:active{transform:scale(.985)}
-.btn-ink{background:var(--ink);color:#fff}
-.btn-guard{background:var(--guard);color:#fff}
-.btn-ghost{background:transparent;color:var(--ink-2);font-weight:500;font-size:15px;padding:12px}
+.btn-ink{background:var(--ink);color:#fff;box-shadow:0 10px 26px rgba(15,26,32,.28)}
+.btn-guard{background:var(--guard);color:#fff;box-shadow:0 10px 26px rgba(14,124,107,.32)}
+.btn-ghost{background:transparent;color:var(--ink-2);font-weight:600;font-size:15px;padding:13px}
 .btn[disabled]{opacity:.45;cursor:default}
-.tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;background:var(--card);border-top:1px solid var(--line);
-  display:flex;justify-content:space-around;align-items:flex-start;padding-top:12px;font-size:11px;color:var(--ink-3)}
-.tabbar div{text-align:center}.tabbar .on{color:var(--guard);font-weight:700}
+.btn-outline{background:var(--card);color:var(--ink);border:1.5px solid var(--ink);padding:15px;font-size:16px}
+.btn-outline::before{content:"▶";font-size:11px;margin-right:8px;vertical-align:1px;color:var(--guard)}
+
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--tab);background:rgba(255,255,255,.92);backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:flex-start;padding:10px 8px 0;font-size:11px;color:var(--ink-3);z-index:3}
+.tabbar div{text-align:center;font-weight:600;width:64px}
+.tabbar .on{color:var(--guard)}
 .tabbar svg{display:block;margin:0 auto 4px}
 
-/* home hero: protection ring */
-.ring{width:190px;height:190px;margin:26px auto 18px;border-radius:50%;display:grid;place-items:center;position:relative;
-  background:conic-gradient(var(--guard) var(--deg,360deg),var(--line) 0)}
-.ring::before{content:"";position:absolute;inset:12px;background:var(--paper);border-radius:50%}
-.ring.alert{background:conic-gradient(var(--alert) var(--deg,360deg),var(--line) 0)}
-.ring.busy{animation:spin 1.4s linear infinite}
+/* ---------- home ---------- */
+.hero{margin:0 -20px;padding:10px 24px 28px;background:
+  radial-gradient(120% 90% at 100% 0%,#1E3A3A 0%,transparent 55%),
+  radial-gradient(90% 70% at 0% 100%,#132A33 0%,transparent 60%),var(--ink);
+  color:#fff;border-radius:0 0 34px 34px;position:relative;overflow:hidden}
+.hero h1{color:#fff;font-size:24px}
+.hero p{color:rgba(255,255,255,.72);font-size:14px;margin-top:4px}
+.hero .brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.02em;color:rgba(255,255,255,.6);margin-bottom:14px}
+.hero .brand i{width:10px;height:10px;border-radius:3px;background:var(--guard);display:inline-block;box-shadow:0 0 0 4px rgba(14,124,107,.25)}
+.ring{width:176px;height:176px;margin:22px auto 10px;border-radius:50%;display:grid;place-items:center;position:relative;
+  background:conic-gradient(var(--guard) var(--deg,360deg),rgba(255,255,255,.12) 0)}
+.ring::before{content:"";position:absolute;inset:11px;background:var(--ink);border-radius:50%;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.ring.alert{background:conic-gradient(var(--alert) var(--deg,360deg),rgba(255,255,255,.12) 0)}
+.ring.busy{animation:spin 1.6s linear infinite}
+.ring.busy .inner{animation:unspin 1.6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.ring .inner{position:relative;text-align:center;animation:none}
-.ring.busy .inner{animation:unspin 1.4s linear infinite}
 @keyframes unspin{to{transform:rotate(-360deg)}}
-.ring .big{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1}
-.ring .sub{font-size:13px;color:var(--ink-2);margin-top:6px}
+.ring .inner{position:relative;text-align:center}
+.ring .big{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1;color:#fff}
+.ring .sub{font-size:13px;color:rgba(255,255,255,.65);margin-top:6px}
 .center{text-align:center}
-.pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:700}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .pill.alert{background:var(--alert-soft);color:var(--alert)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
 .pill.guard{background:var(--guard-soft);color:var(--guard)}
+.hero .pill.guard{background:rgba(14,124,107,.22);color:#9FE3D4}
+.hero .pill.alert{background:rgba(216,80,58,.22);color:#FFB3A3}
 .row{display:flex;align-items:center;gap:12px}
-.row .grow{flex:1}
-.site-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff}
-.muted{color:var(--ink-3);font-size:13px}
-.notice{background:var(--alert);color:#fff;border-radius:var(--r);padding:16px 18px;margin:8px 0 14px}
-.notice b{display:block;font-size:16px;margin-bottom:4px}
-.notice span{font-size:14px;opacity:.9}
+.row .grow{flex:1;min-width:0}
+.row b{font-size:15.5px;letter-spacing:-.01em}
+.site-ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;flex:none}
+.muted{color:var(--ink-3);font-size:13px;margin-top:2px}
+.card.row{padding:14px 16px}
+.empty-hint{display:none;background:var(--card);border:1.5px dashed var(--line);border-radius:var(--r);padding:22px 18px;text-align:center;font-size:14px;line-height:1.6;color:var(--ink-2)}
+#vaultList:empty+.empty-hint{display:block}
 
-/* domino */
-.domino{display:flex;flex-direction:column;gap:0;margin:6px 0 4px}
-.domino .node{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
-.domino .link{height:26px;margin-left:34px;border-left:2px dashed var(--alert);position:relative}
-.domino .link span{position:absolute;left:12px;top:4px;font-size:12px;color:var(--alert);font-weight:600}
+/* ---------- risk ---------- */
+.notice{background:var(--alert);color:#fff;border-radius:var(--r);padding:18px;margin:6px 0 16px;position:relative;overflow:hidden}
+.notice::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)}
+.notice b{display:block;font-size:18px;margin-bottom:4px;letter-spacing:-.015em;line-height:1.3}
+.notice span{font-size:14px;opacity:.9;line-height:1.45;display:block}
+.domino{display:flex;flex-direction:column;margin:4px 0}
+.domino .node{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.domino .node b{font-size:17px;letter-spacing:-.015em;display:block}
+.domino .node .muted{font-size:14px;color:var(--ink-2);margin-top:3px}
+.domino .node .pill{font-size:13.5px;padding:7px 13px}
+.domino .node{padding:15px 16px}
+.domino .link{height:30px;margin-left:35px;border-left:2px dashed var(--alert);position:relative}
+.domino .link span{position:absolute;left:12px;top:6px;font-size:12px;color:var(--alert);font-weight:700}
 .domino .node.leak{background:var(--ink);color:#fff;border-color:var(--ink)}
-.domino .node.leak .muted{color:#B9C2C8}
+.domino .node.leak .muted{color:#A7B2B9}
 
-/* progress */
-.steps{display:flex;gap:6px;margin:10px 0 4px}
-.steps i{flex:1;height:6px;border-radius:3px;background:var(--line)}
-.steps i.done{background:var(--guard)}.steps i.now{background:var(--guard);opacity:.45}
-.eye{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#fff;aspect-ratio:720/460;position:relative}
-.eye img{width:100%;height:100%;object-fit:contain;object-position:top;display:block}
-.eye .tag{position:absolute;left:10px;top:10px;background:rgba(14,19,23,.85);color:#fff;font-size:11px;padding:4px 8px;border-radius:8px}
-.eye .empty{position:absolute;inset:0;display:grid;place-items:center;color:#8A949B;font-size:13px}
-.log{font-size:13px;color:var(--ink-2);line-height:1.6;margin-top:10px}
+/* ---------- run ---------- */
+.steps{display:flex;gap:5px;margin:12px 0 2px}
+.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.steps i.done{background:var(--guard)}.steps i.now{background:var(--guard);opacity:.4;animation:blink 1s ease-in-out infinite}
+@keyframes blink{50%{opacity:.9}}
+.eye{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#0F1A20;aspect-ratio:720/460;position:relative}
+.eye img{width:100%;height:100%;object-fit:contain;object-position:top;display:block;background:#fff}
+.eye .tag{position:absolute;left:10px;bottom:10px;background:rgba(15,26,32,.85);color:#fff;font-size:11.5px;padding:5px 9px;border-radius:9px;font-weight:600;backdrop-filter:blur(6px)}
+.eye .empty{position:absolute;inset:0;display:grid;place-items:center;color:#86929A;font-size:13px;background:var(--card)}
+.eye .scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--guard),transparent);opacity:.9;
+  animation:scan 2.4s ease-in-out infinite;pointer-events:none}
+@keyframes scan{0%{top:0}50%{top:calc(100% - 2px)}100%{top:0}}
+.log{font-size:13px;color:var(--ink-2);line-height:1.7;margin-top:10px;padding:0 4px}
 .log b{color:var(--ink)}
 
-/* approval sheet */
-.sheet{position:absolute;left:0;right:0;bottom:-100%;background:var(--card);border-radius:28px 28px 0 0;padding:14px 22px 34px;
-  box-shadow:0 -20px 60px rgba(0,0,0,.25);transition:bottom .32s cubic-bezier(.2,.8,.2,1);z-index:5}
+/* ---------- approval sheet ---------- */
+.sheet{position:absolute;left:0;right:0;bottom:-100%;background:var(--card);border-radius:32px 32px 0 0;padding:12px 22px 42px;
+  box-shadow:0 -24px 70px rgba(0,0,0,.28);transition:bottom .36s cubic-bezier(.2,.8,.2,1);z-index:6}
 .sheet.on{bottom:0}
-.sheet .grip{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 18px}
-.scrim{position:absolute;inset:0;background:rgba(23,34,43,.35);opacity:0;pointer-events:none;transition:opacity .3s;z-index:4}
+.sheet .grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 18px}
+.sheet h1{font-size:22px}
+.scrim{position:absolute;inset:0;background:rgba(15,26,32,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:5;backdrop-filter:blur(2px)}
 .scrim.on{opacity:1;pointer-events:auto}
-.kv{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
 .kv:last-child{border-bottom:0}
-.kv b{font-weight:700}
+.kv span{color:var(--ink-3)}
+.kv b{font-weight:700;text-align:right}
 
-/* done */
-.check{width:84px;height:84px;border-radius:50%;background:var(--guard-soft);display:grid;place-items:center;margin:34px auto 16px}
-.stat{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
-.stat>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center}
-.stat .n{font-size:24px;font-weight:800;letter-spacing:-.02em}
-.stat .l{font-size:12px;color:var(--ink-3);margin-top:2px}
-.proof{background:var(--guard-soft);color:var(--guard);border-radius:14px;padding:14px 16px;font-size:14px;font-weight:600;line-height:1.5}
-.demo-reset{font-size:11px;color:var(--ink-3);margin-left:10px;font-weight:500}
-@media (prefers-reduced-motion:reduce){.ring.busy,.ring.busy .inner{animation:none}.sheet{transition:none}}
+/* ---------- done ---------- */
+.check{width:92px;height:92px;border-radius:50%;background:var(--guard);display:grid;place-items:center;margin:26px auto 16px;
+  box-shadow:0 0 0 12px var(--guard-soft);animation:pop .5s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+.stat{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:18px 0 10px}
+.stat>div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center}
+.stat .n{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.stat .l{font-size:12px;color:var(--ink-3);margin-top:3px;font-weight:600}
+.stat>div:nth-child(3){background:var(--ink);border-color:var(--ink);color:#fff}
+.stat>div:nth-child(3) .n{font-size:28px;color:#9FE3D4}
+.stat>div:nth-child(3) .l{color:rgba(255,255,255,.7)}
+.proof{background:linear-gradient(135deg,var(--guard-deep),var(--guard));color:#fff;border-radius:18px;padding:20px 18px;font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.4;display:flex;gap:12px;align-items:center;box-shadow:0 12px 30px rgba(14,124,107,.3)}
+.proof svg{flex:none;width:34px;height:34px}
+@media (prefers-reduced-motion:reduce){.ring.busy,.ring.busy .inner,.eye .scan,.steps i.now,.check{animation:none}.sheet,.screen.on{transition:none;animation:none}}
 </style>
 </head>
 <body>
 <div class="phone">
-  <div class="statusbar"><span id="clock">9:41</span><span>Z-LAS <button class="demo-reset" id="resetBtn" title="데모 초기화">초기화</button></span></div>
+  <div class="statusbar"><span id="clock">9:41</span>
+    <span class="right">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="4.5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="9" y="3" width="3" height="9" rx=".8"/><rect x="13.5" y="0" width="3" height="12" rx=".8"/></svg>
+      <svg width="27" height="12" viewBox="0 0 27 12" fill="none"><rect x=".5" y=".5" width="22" height="11" rx="3" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="1.8" fill="currentColor"/><path d="M24.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".4"/></svg>
+      <button class="demo-reset" id="resetBtn" title="데모 초기화">초기화</button>
+    </span></div>
 
   <!-- 홈 -->
   <section class="screen on" id="s-home">
-    <h1>내 계정 보호</h1>
-    <p>등록한 계정의 유출 여부를 계속 확인하고, 문제가 생기면 대신 처리합니다.</p>
-    <div class="ring" id="ring"><div class="inner"><div class="big" id="ringNum">2</div><div class="sub" id="ringSub">보호 중인 계정</div></div></div>
-    <div class="center" id="homeState"><span class="pill guard">오늘 확인한 유출 없음</span></div>
+    <div class="hero">
+      <div class="brand"><i></i>Zero-Leak</div>
+      <h1>내 계정 보호</h1>
+      <p>등록한 계정의 유출 여부를 계속 확인하고, 문제가 생기면 대신 처리합니다.</p>
+      <div class="ring" id="ring"><div class="inner"><div class="big" id="ringNum">2</div><div class="sub" id="ringSub">보호 중인 계정</div></div></div>
+      <div class="center" id="homeState"><span class="pill guard">오늘 확인한 유출 없음</span></div>
+    </div>
     <h2>보호 중인 계정</h2>
     <div id="vaultList"></div>
-    <div style="height:14px"></div>
-    <button class="btn btn-ghost" id="simBtn">유출 발생 상황 보기</button>
+    <div class="empty-hint">아직 등록한 계정이 없습니다. 자주 쓰는 사이트의 계정을 등록하면 유출 여부를 계속 확인하고, 문제가 생기면 대신 처리합니다.</div>
+    <div style="height:10px"></div>
+    <button class="btn btn-outline" id="simBtn">유출 발생 상황 보기</button>
   </section>
 
   <!-- 알림 / 위험 -->
   <section class="screen" id="s-risk">
     <div class="notice"><b id="noticeTitle">비밀번호가 유출됐습니다</b><span id="noticeSub">텔레그램에 올라온 유출 자료에서 내 계정이 발견됐습니다.</span></div>
-    <h2>같은 비밀번호를 쓴 곳까지 위험합니다</h2>
+    <h2 style="margin-top:4px">같은 비밀번호를 쓴 곳까지 위험합니다</h2>
     <div class="domino" id="domino"></div>
-    <p class="muted" style="margin-top:10px">비밀번호 끝 글자만 다른 변형도 같은 패턴으로 봅니다. 대조는 내 기기 안에서만 이루어집니다.</p>
-    <div style="height:18px"></div>
+    <p class="muted" style="margin-top:12px">비밀번호 끝 글자만 다른 변형도 같은 패턴으로 봅니다. 대조는 내 기기 안에서만 이루어집니다.</p>
+    <div style="height:22px"></div>
     <button class="btn btn-ink" id="protectBtn">지금 모두 처리하기</button>
     <button class="btn btn-ghost" id="laterBtn">나중에</button>
   </section>
@@ -138,20 +199,21 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
   <!-- 진행 -->
   <section class="screen" id="s-run">
     <h1 id="runTitle">처리하고 있습니다</h1>
-    <p id="runSub">최종 확정이 필요한 순간에만 알려 드립니다.</p>
+    <p id="runSub" style="margin-top:6px">최종 확정이 필요한 순간에만 알려 드립니다.</p>
+    <div style="height:14px"></div>
     <div id="runCards"></div>
-    <h2>지금 Z-LAS가 보는 화면</h2>
+    <h2>지금 Zero-Leak가 보는 화면</h2>
     <div class="eye" id="eye"><div class="empty">곧 시작합니다</div></div>
-    <p class="muted" style="margin-top:8px">비밀번호 칸은 검게 가린 상태로만 분석합니다. 비밀번호는 이 휴대폰 밖으로 나가지 않습니다.</p>
+    <p class="muted" style="margin-top:10px">비밀번호 칸은 검게 가린 상태로만 분석합니다. 비밀번호는 이 휴대폰 밖으로 나가지 않습니다.</p>
     <div class="log" id="runLog"></div>
   </section>
 
   <!-- 완료 -->
   <section class="screen" id="s-done">
-    <div class="check"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0F7F6C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>
+    <div class="check"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>
     <h1 class="center">처리를 마쳤습니다</h1>
     <div class="stat"><div><div class="n" id="dChanged">0</div><div class="l">변경</div></div><div><div class="n" id="dLeft">0</div><div class="l">탈퇴</div></div><div><div class="n" id="dTime">0초</div><div class="l">소요</div></div></div>
-    <div class="proof" id="proof">비밀번호가 외부로 전송된 기록 0건</div>
+    <div class="proof"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9FE3D4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span id="proof">비밀번호가 외부로 전송된 기록 0건</span></div>
     <h2>처리 내역</h2>
     <div id="doneList"></div>
     <div style="height:14px"></div>
@@ -161,27 +223,27 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet">
     <div class="grip"></div>
-    <h1 id="sheetTitle" style="font-size:22px">마지막 확인</h1>
+    <h1 id="sheetTitle">마지막 확인</h1>
     <p id="sheetSub" style="margin:6px 0 14px">이 단계는 되돌릴 수 없어 직접 확인을 받습니다.</p>
-    <div class="card" style="padding:4px 16px" id="sheetKv"></div>
+    <div class="card" style="padding:4px 16px;margin-bottom:14px" id="sheetKv"></div>
     <button class="btn btn-guard" id="approveBtn">확정</button>
     <button class="btn btn-ghost" id="skipBtn">이 사이트는 건너뛰기</button>
   </div>
 
   <nav class="tabbar">
-    <div class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>보호</div>
-    <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18"/></svg>계정</div>
-    <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>내역</div>
-    <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>나</div>
+    <div class="on"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>보호</div>
+    <div><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18"/></svg>계정</div>
+    <div><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>내역</div>
+    <div><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>나</div>
   </nav>
 </div>
 
 <script>
 const $=s=>document.querySelector(s);
 const screens=["home","risk","run","done"];
-let cur="home", lastSeen={}, approvedSites=new Set(), doneShown=false;
+let cur="home", approvedSites=new Set(), doneShown=false;
 function show(n){cur=n;screens.forEach(s=>$("#s-"+s).classList.toggle("on",s===n));$("#s-"+n).scrollTop=0}
-const COLORS={"데모쇼핑":"#2F6BE4","데모웹하드":"#7A4FD8"};
+const COLORS={"데모쇼핑":"#FF5A36","데모웹하드":"#5A48E3"};
 const ic=s=>`<div class="site-ic" style="background:${COLORS[s]||'#6B7680'}">${s.slice(0,1)}</div>`;
 const actKo=a=>a==="change"?"비밀번호 변경":"서비스 탈퇴";
 setInterval(()=>{const d=new Date();$("#clock").textContent=d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")},1000);
@@ -200,7 +262,7 @@ function renderRisk(d){
   const r=d.risk; if(!r.length) return;
   const crit=r.find(x=>x.risk==="critical")||r[0];
   $("#noticeTitle").textContent=`${crit.site} 비밀번호가 유출됐습니다`;
-  let h=`<div class="node leak"><div class="site-ic" style="background:#39434B">!</div><div class="grow"><b>유출 자료</b><div class="muted">${crit.reason.split("(")[1]?.replace(")","")||"외부 유출 데이터"}</div></div></div>`;
+  let h=`<div class="node leak"><div class="site-ic" style="background:#2A353D">!</div><div class="grow"><b>유출 자료</b><div class="muted">${crit.reason.split("(")[1]?.replace(")","")||"외부 유출 데이터"}</div></div></div>`;
   r.forEach(x=>{h+=`<div class="link"><span>${x.risk==="critical"?"그대로 일치":"비밀번호 변형 일치"}</span></div>`;
     h+=`<div class="node">${ic(x.site)}<div class="grow"><b>${x.site}</b><div class="muted">${x.action==="withdraw"?"오래 쓰지 않아 탈퇴를 권해요":"비밀번호를 바꿔야 해요"}</div></div><span class="pill ${x.risk==="critical"?"alert":"warn"}">${x.risk==="critical"?"긴급":"주의"}</span></div>`});
   $("#domino").innerHTML=h;
@@ -214,7 +276,7 @@ function renderRun(d){
     const bars=Array.from({length:tot},(_,i)=>`<i class="${i<n-1||b.done?'done':i===n-1?'now':''}"></i>`).join("");
     return `<div class="card"><div class="row">${ic(x.site)}<div class="grow"><b>${x.site}</b><div class="muted">${actKo(x.action)}</div></div><span class="pill ${b.done?'guard':'warn'}">${label}</span></div><div class="steps">${bars}</div></div>`}).join("");
   const shots=d.shots||{}; const curSite=st.current?.site; const sh=shots[curSite]||Object.values(shots).sort((a,b)=>b.mtime-a.mtime)[0];
-  if(sh){$("#eye").innerHTML=`<img src="/shots/${encodeURIComponent(sh.file)}?t=${sh.mtime}" alt=""><div class="tag">${curSite||""} · ${sh.step}단계 · 비밀번호 칸은 가려짐</div>`}
+  if(sh){$("#eye").innerHTML=`<img src="/shots/${encodeURIComponent(sh.file)}?t=${sh.mtime}" alt="">${d.running?'<div class="scan"></div>':''}<div class="tag">${curSite||""} · ${sh.step}단계 · 비밀번호 칸은 가려짐</div>`}
   const last=steps.slice(-3).map(s=>{const a=s.action_json;const w=a.tool==="click"?"버튼 선택":a.tool==="fill"?"입력":a.tool==="handoff"?"확인 요청":"완료";return `<b>${s.site}</b> ${s.n}단계 · ${w}`}).join("<br>");
   $("#runLog").innerHTML=last;
   if(d.running){$("#runTitle").textContent="처리하고 있습니다";$("#ring").classList.add("busy")}else $("#ring").classList.remove("busy");
@@ -229,7 +291,7 @@ function sheet(on,p){
   $("#sheet").classList.toggle("on",on);$("#scrim").classList.toggle("on",on);
   if(on&&p){$("#sheetTitle").textContent=`${p.site} 최종 확인`;$("#sheetSub").textContent=p.reason.replace("최종 확정 전 승인 필요","을 누르면 되돌릴 수 없어 직접 확인을 받습니다").replace(/'/g,"‘");
     const r=(window._last?.risk||[]).find(x=>x.site===p.site)||{};
-    $("#sheetKv").innerHTML=`<div class="kv"><span>할 일</span><b>${actKo(r.action||"change")}</b></div><div class="kv"><span>계정</span><b>${r.email||""}</b></div><div class="kv"><span>새 비밀번호</span><b>자동 생성 · 기기에만 저장</b></div>`;
+    $("#sheetKv").innerHTML=`<div class="kv"><span>할 일</span><b>${actKo(r.action||"change")}</b></div><div class="kv"><span>계정</span><b>${r.email||""}</b></div>${r.action==="withdraw"?'<div class="kv"><span>보관 데이터</span><b>탈퇴 후 7일 뒤 삭제</b></div>':'<div class="kv"><span>새 비밀번호</span><b>자동 생성 · 기기에만 저장</b></div>'}`;
     $("#approveBtn").dataset.site=p.site}
 }
 

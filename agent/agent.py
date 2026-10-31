@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Z-LAS 자율 조치 에이전트 (로컬 실행 — 분리 실행의 '손').
+Zero-Leak 자율 조치 에이전트 (로컬 실행 — 분리 실행의 '손').
 사이트 열기 → SoM 번호 배지 주입 + 비밀번호 마스킹 → 스크린샷 →
 llm.decide() 로 다음 액션(클라우드의 '눈') → 가드레일 통과 시 실행 → 반복(최대 N단계).
 handoff 가 나오면 shared/approve.flag 를 기다린다.
@@ -35,7 +35,7 @@ APPROVE_TIMEOUT = int(os.getenv("APPROVE_TIMEOUT", "30"))   # 승인 대기 최�
 HANDOFF_POLL = 0.5
 TESTBED_HOSTS = {"localhost", "127.0.0.1"}
 # 최종 제출 버튼 앞에서 사람 승인을 받는다 (데모: "변경 직전에 멈추고 [변경 확정]").
-CONFIRM_WORDS = ["변경하기", "회원 탈퇴", "탈퇴하기", "저장", "제출"]
+CONFIRM_WORDS = ["변경하기", "비밀번호 변경", "회원 탈퇴", "탈퇴하기", "저장", "제출"]
 
 # 데모용 입력 값 (실제 비밀번호 아님). 실제 서비스에서는 OS 키체인에서 읽는다.
 FIELD_VALUES = {

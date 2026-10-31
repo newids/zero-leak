@@ -11,7 +11,7 @@ for st in steps:
     x["steps"] = max(x["steps"], st["n"]); x["ms"].append(st["vlm_ms"]); x["route"].add(st.get("route", ""))
     x["handoff"] += st["status"] == "handoff"; x["done"] |= st["status"] == "done"
 ms = [st["vlm_ms"] for st in steps]
-print(f"# Z-LAS 측정 리포트 — {d['run_id']} · 모델 경로 {d.get('provider')}\n")
+print(f"# Zero-Leak 측정 리포트 — {d['run_id']} · 모델 경로 {d.get('provider')}\n")
 print("| 지표 | 값 |\n| --- | --- |")
 print(f"| 처리 사이트 | {s['sites']} (변경 {s['changed']} · 탈퇴 {s['withdrawn']}) |")
 print(f"| 전체 소요 | {s['elapsed_s']} 초 |")
