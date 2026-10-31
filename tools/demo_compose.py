@@ -31,7 +31,8 @@ vf=(f"[0:v]scale=-2:920[ph];"
     f"drawtext=fontfile={FONTR}:textfile={S}/panel3.txt:fontsize=30:fontcolor=0xBFD8D5:x=780:y=480:line_spacing=10:enable='lt(t,{AG_START})'[b];"
     f"[b][ag]overlay=720:120:enable='gte(t,{AG_START})'[c];"
     f"[c]drawtext=fontfile={FONTR}:textfile={S}/label.txt:fontsize=26:fontcolor=0xBFD8D5:x=720:y=850:enable='gte(t,{AG_START})',"
-    f"drawbox=x=0:y=975:w=1920:h=105:color=black@0.55:t=fill{draw}[v]")
+    f"drawbox=x=0:y=975:w=1920:h=105:color=black@0.55:t=fill,"
+    f"drawbox=x=0:y=972:w='1920*t/{ev['end']+1.5}':h=4:color=0x0E7C6B@0.95:t=fill{draw}[v]")
 main=S/"main.mp4"
 subprocess.run(["ffmpeg","-y","-loglevel","error","-i",PH,"-i",AG,"-filter_complex",vf,"-map","[v]","-t",str(ev["end"]+1.5),"-r","30","-c:v","libx264","-pix_fmt","yuv420p","-preset","medium",str(main)],check=True)
 # intro / outro

@@ -71,7 +71,8 @@ def protect():
     for p in SHOTS.glob("*.png"):
         p.unlink()
     provider = request.json.get("provider", os.getenv("LLM_PROVIDER", "mock")) if request.is_json else "mock"
-    env = dict(os.environ, STEP_PAUSE_MS=os.getenv("STEP_PAUSE_MS", "700"))
+    env = dict(os.environ, STEP_PAUSE_MS=os.getenv("STEP_PAUSE_MS", "700"),
+               CONFIRM_SUBMIT=os.getenv("CONFIRM_SUBMIT", "1"))      # 데모: 최종 제출 직전 승인 시트를 기본으로 켠다
     cmd = [sys.executable, str(AGENT), "--all", "--provider", provider]
     if os.getenv("AGENT_RECORD_DIR"):                       # 시연 영상용: 에이전트 브라우저도 녹화
         cmd += ["--record", os.getenv("AGENT_RECORD_DIR")]
