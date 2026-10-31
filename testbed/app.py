@@ -160,7 +160,7 @@ def shop_login():
     <div class=field><div class=pw-wrap><input type=password placeholder="비밀번호" autocomplete=current-password><button type=button class=eye>표시</button></div></div>
     <div class=check><span class=cb>✓</span> 로그인 상태 유지</div>
     <a class="btn blue" href="/shop/my">로그인</a>
-    <div class=auth-links><a href="#">아이디 찾기</a><a href="#">비밀번호 재설정</a><a href="#">회원가입</a></div>
+    <div class=auth-links><a href="#">아이디 찾기</a><a href="#">비밀번호 찾기</a><a href="#">회원가입</a></div>
   </div>
 </main>
 <div class=banner>해커톤 테스트베드 · 실제 서비스가 아닙니다</div></body></html>"""
@@ -193,7 +193,8 @@ def shop_account():
         <div class=panel><h3>보안</h3>
           <ul class=info-list>
           <li><span class=k>비밀번호</span><span class=v>•••••••• <small style="color:var(--muted);font-weight:600">마지막 변경 2년 전</small></span><a class="act blue" href="/shop/pw">비밀번호 변경</a></li>
-          <li><span class=k>2단계 인증</span><span class=v>사용 안 함</span><a class=act href="#">설정</a></li></ul></div>
+          <li><span class=k>2단계 인증</span><span class=v>사용 안 함</span><a class=act href="#">설정</a></li>
+          <li><span class=k>회원 탈퇴</span><span class=v><small style="color:var(--muted);font-weight:600">구매한 책·캐시가 모두 삭제됩니다</small></span><a class=act href="/shop/leave" style="color:var(--muted)">회원 탈퇴</a></li></ul></div>
         <div class=panel><h3>기본 정보</h3>
           <ul class=info-list>
           <li><span class=k>아이디</span><span class=v>demo1</span></li>
@@ -214,6 +215,28 @@ def shop_pw():
           <div class=hint>8~32자 · 영문, 숫자, 특수문자 중 2가지 이상 · 공백 없이 · 아이디 미포함</div></div>
         <div class=form-actions><a class="btn ghost sm" href="/shop/account">취소</a><button type=submit class="btn blue sm">비밀번호 변경</button></div>
         </form></div></section></div>""")
+
+
+@app.route("/shop/leave")
+def shop_leave():
+    return shop("회원 탈퇴", f"""
+      <h1 class=page-title>회원 탈퇴</h1>
+      <div class=my>{side("account")}
+      <section><div class=panel><h3>정말 탈퇴하시겠어요? <small>구매 목록 128권 · 캐시 12,500원이 삭제됩니다</small></h3>
+        <form class=form action="/shop/leave/done" method=get>
+        <div class=field><label for=reason>탈퇴 사유</label><input id=reason type=text name=reason placeholder="탈퇴 사유를 입력하세요"></div>
+        <div class=form-actions><a class="btn ghost sm" href="/shop/account">취소</a><button type=submit class="btn blue sm" style="background:var(--red)">회원 탈퇴</button></div>
+        </form></div></section></div>""")
+
+
+@app.route("/shop/leave/done")
+def shop_leave_done():
+    return shop("탈퇴 완료", f"""
+      <h1 class=page-title>회원 탈퇴</h1>
+      <div class=my>{side("account")}
+      <section><div class="panel success"><div class=ic>✓</div><h1>탈퇴 완료</h1>
+        <p>demo1 계정이 삭제되었습니다. 구매 내역은 복구할 수 없습니다.</p>
+        <a class="btn ghost sm" href="/shop">처음으로</a></div></section></div>""")
 
 
 @app.route("/shop/pw/done")
@@ -350,7 +373,7 @@ def wh_settings():
 ACCOUNT = """<h1>계정 관리</h1>
 <div class=panel>
   <div class=prof><span class=me>D</span><div><b style="font-size:16px">demo1</b><div style="color:#7A7E99;font-size:13px">demo1@zlas.kr</div></div>
-    <a class="btn line" style="margin-left:auto" href="/webhard">비밀번호 변경</a></div>
+    <a class="btn line" style="margin-left:auto" href="/webhard/pw">비밀번호 변경</a></div>
   <div class=kv><small>요금제</small><span>2TB · 월 자동 결제</span></div>
   <div class=kv><small>가입일</small><span>2019. 11. 3.</span></div>
   <div class=kv><small>마지막 로그인</small><span>2024. 9. 12. (약 2년 전)</span></div>
@@ -365,6 +388,23 @@ ACCOUNT_BG = ACCOUNT.replace('<a class=ghost href="/webhard/leave1">회원 탈�
 @app.route("/webhard/account")
 def wh_account():
     return hard("계정 관리", ACCOUNT)
+
+
+@app.route("/webhard/pw")
+def wh_pw():
+    return hard("비밀번호 변경", """<h1>비밀번호 변경</h1>
+<div class=panel><form action="/webhard/pw/done" method=get>
+  <label for=cur style="display:block;font-size:13px;color:#7A7E99;font-weight:600;margin-bottom:6px">현재 비밀번호</label>
+  <input id=cur type=password name=cur style="display:block;width:100%;height:42px;border:1px solid #D8DBE8;border-radius:8px;padding:0 12px;margin-bottom:12px">
+  <label for=new style="display:block;font-size:13px;color:#7A7E99;font-weight:600;margin-bottom:6px">새 비밀번호</label>
+  <input id=new type=password name=new style="display:block;width:100%;height:42px;border:1px solid #D8DBE8;border-radius:8px;padding:0 12px;margin-bottom:14px">
+  <button class=btn type=submit>변경하기</button> <a class="btn line" href="/webhard/account">취소</a></form></div>""")
+
+
+@app.route("/webhard/pw/done")
+def wh_pw_done():
+    return hard("변경 완료", """<div class=done><h1>비밀번호 변경 완료</h1>
+        <p>모든 기기에서 다시 로그인해야 합니다.</p><a class="btn line" href="/webhard">처음으로</a></div>""")
 
 
 @app.route("/webhard/leave1")

@@ -49,7 +49,9 @@ leak.json ──► detect.py ──► risk.json ──► agent.py ──► s
     "email": "demo1@zlas.kr",
     "risk": "critical",            // critical | high | medium
     "reason": "유출 비밀번호와 정확히 일치",
-    "action": "change"             // change | withdraw
+    "action": "change",            // change | withdraw  (실행할 조치)
+    "action_auto": "change",       // detect.py 권고 (사용자가 바꾼 뒤에만 존재)
+    "action_by": "user"            // auto | user (사용자가 바꾼 뒤에만 존재)
   }
 ]
 ```

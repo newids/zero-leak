@@ -66,7 +66,8 @@ class State:
         self.flush()
 
     def log(self, n, site, action_json, status, shot, vlm_ms, route):
-        self.data["steps"].append({"n": n, "site": site, "action_json": action_json,
+        self.data["steps"].append({"n": n, "site": site, "action": self.data["current"].get("action"),
+                                   "action_json": action_json,
                                    "status": status, "shot": shot, "vlm_ms": vlm_ms,
                                    "route": route, "ts": now()})
         self.flush()
