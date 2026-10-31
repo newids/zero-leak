@@ -333,8 +333,12 @@ def main():
     ap.add_argument("--headful", action="store_true", help="브라우저 창 표시(데모)")
     ap.add_argument("--record", metavar="DIR",
                     help="에이전트 브라우저 화면을 webm 으로 녹화 (데모 영상용)")
+    # 사람 승인은 꼭 필요한 곳(캡차·본인인증·2FA, 서버 거부)에서만 묻는다. 최종 제출 직전 승인은 기본 꺼짐이고,
+    # 데모의 '[변경 확정]' 장면을 살리려면 --confirm-submit 또는 CONFIRM_SUBMIT=1 로 켠다.
+    ap.add_argument("--confirm-submit", action="store_true", default=os.getenv("CONFIRM_SUBMIT", "0") == "1",
+                    help="최종 제출 버튼 직전에 사람 승인을 받음 (기본 꺼짐, CONFIRM_SUBMIT=1 로도 켜짐)")
     ap.add_argument("--no-confirm", action="store_true",
-                    help="최종 제출 전 승인 대기를 생략 (자동 테스트용)")
+                    help="(호환용) 최종 제출 전 승인 대기를 생략 — 기본값이 이미 생략이라 보통 불필요")
     # 실제 사이트 테스트 (본인 소유 계정, 팀 합의 하에만). 기본값은 테스트베드 전용 그대로.
     ap.add_argument("--url", help="조작할 시작 URL. --allow-host 에 그 호스트를 적어야 실행됨")
     ap.add_argument("--allow-host", action="append", default=[], metavar="HOST",
@@ -392,7 +396,7 @@ def main():
         attach_network_monitor(page, state)
         for t in targets:
             run_site(page, llm, state, t["site"], t["url"], t["action"],
-                     confirm=not args.no_confirm)
+                     confirm=args.confirm_submit and not args.no_confirm)
         context.close()
         if browser:
             browser.close()
