@@ -123,3 +123,26 @@ agent.py 루프 (최대 12단계, MAX_STEPS)
 4. (선택) `som.js` 가 input 의 value 유무를 라벨에 표시.
 확인: `python infra/probe_vlm.py --provider claude --all` 3/3, `--provider vllm --all` 에서 shop_pw 가 fill 로.
 수정 후 `infra/probe_vlm.py` 의 `_claude_no_temperature` 임시 대체 블록은 기획자가 제거.
+
+## 추가: 게이트웨이로 실제 confidence 계산 (2026-10-31 18:40)
+
+`infra/gateway/app.py` (FastAPI, GPU 서버 :8080 → vLLM :8000). 요청에 `logprobs` 를 켜고, 응답 JSON 의 `confidence` 를
+모델 자가 보고값(항상 0.9) 대신 **고른 토큰의 실제 확률** `min(p_tool, p_n)` 으로 바꿔 넣는다. OpenAI 호환 형식 그대로라
+`llm.py` 무수정, `.env` 의 `VLLM_BASE_URL` 만 `:8080` 으로 전환. 요청마다 `~/zlas-gateway/requests.jsonl` 에 지연·원문·대안 후보 기록.
+
+| 케이스 | 판정 | p_tool | p_n | **confidence** | n 후보 (확률) |
+| --- | --- | --- | --- | --- | --- |
+| shop_account | ✅ click 1 | 0.997 | 0.999 | **0.997** | 1 (0.999) · 2 (0.000) · 3 (0.000) |
+| shop_pw | ❌ click 3 | **0.649** | 0.965 | **0.649** | 3 (0.965) · 2 (0.026) · 1 (0.004) |
+| webhard_trap | ✅ click 2 | 0.989 | 0.994 | **0.989** | 2 (0.994) · 1 (0.003) · 3 (0.002) |
+
+해석:
+- 자가 보고 0.9 는 정보가 없었지만, 토큰 확률은 **틀린 답에서만 낮다** (0.65 vs 0.99). 승격 신호로 쓸 수 있다.
+- shop_pw 의 불확실성은 `n` 이 아니라 **`tool`** 에 있다 — "click" 0.649, 나머지 약 0.35 가 "fill" 쪽. 모델이 "채울까 누를까"를 망설였고
+  Claude 는 같은 화면에서 fill 을 골랐다. 즉 이 케이스는 승격이 정확히 필요한 자리다.
+- 현재 `PROMOTE_BELOW = 0.6` 은 0.649 를 통과시킨다. 표본 3개뿐이라 단정은 이르지만 **0.8 근처**가 맞아 보인다.
+  → 개발자 요청 추가: `PROMOTE_BELOW` 를 환경변수(`PROMOTE_BELOW`, 기본 0.6)로 빼서 측정값으로 조정 가능하게.
+- 게이트웨이 경유 지연: 320~500ms (vLLM 직접 호출 대비 +수십 ms). 목표 3s 대비 여유.
+
+남은 과제: 표본 확대 — 테스트베드 변형(아이콘 버튼, 영문 UI, 스크롤 아래, 재인증 페이지)을 추가해 20~30 케이스로
+confidence 분포와 임계값을 정한다. 이게 "A100(L4) 1차 판단 + Claude 승격" 구조의 근거 숫자가 된다.
