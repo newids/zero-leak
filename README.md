@@ -20,9 +20,11 @@ cd testbed && python app.py &                      # http://localhost:5001  (데
 cd agent   && python agent.py --all --provider mock   # 키 없이 전체 흐름. 실제 데모는 vllm|claude
 ```
 
-대시보드: `cd dashboard && streamlit run app.py` (유출 발생 → 원클릭 일괄 방어 → 최종 제출 직전 [변경 확정] 승인) · 측정: `python bench.py`
+대시보드: `cd dashboard && streamlit run app.py` (유출 발생 → 원클릭 일괄 방어 → 리포트) · 측정: `python bench.py`
 
-자동 테스트는 `--no-confirm` 으로 승인 대기를 생략한다. 데모 때는 생략하지 않는다 — 승인 장면이 핵심이다.
+사람 승인은 캡차·본인인증·2FA(모델이 handoff)와 서버가 제출을 거부했을 때(규칙 handoff)에만 받는다. 최종 제출 직전 승인은 기본 꺼짐이며
+`CONFIRM_SUBMIT=1`(또는 `--confirm-submit`)로 켤 수 있다 — 데모에서 "[변경 확정]" 장면을 보여 주고 싶을 때만.
+실제 사이트 테스트는 `--url … --allow-host … --channel chrome --user-data-dir … --approve-enter` (계정값은 `ZL_*` 환경변수, `docs/실환경 실행 설정 방법 안내.md`).
 
 ## 폴더와 담당
 
@@ -54,4 +56,5 @@ cd agent   && python agent.py --all --provider mock   # 키 없이 전체 흐름
 
 ## 마지막 실행 결과 (mock, 2026-10-31)
 
-데모쇼핑 변경 9단계 · 데모웹하드 탈퇴 8단계(유인 팝업 2회 통과) · 승인 2회(최종 제출 직전) · 12.8초 · 평문 전송 0건. `python bench.py` 가 같은 표를 만든다.
+테스트베드(vllm+Claude 승격): 데모쇼핑 변경 9단계 · 데모웹하드 탈퇴 8단계(유인 팝업 2회 통과) · 사람 승인 0회 · 37초 · 평문 전송 0건.
+실제 사이트(리디북스, 본인 계정): 12단계 · 63초 · 사람 개입은 이메일 인증 코드 1회 · 평문 전송 0건. `python bench.py` 가 같은 표를 만든다.
