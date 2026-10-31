@@ -21,7 +21,7 @@ from __future__ import annotations
 import argparse, datetime, json, os, pathlib, sys, time
 from urllib.parse import urlparse
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Error as PWError
 from llm import LLM, MONITOR, Screen
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -135,10 +135,37 @@ def wait_for_approval(site: str) -> str:
     return "timeout"
 
 
+def settle(page, timeout_ms: int = 8000):
+    """페이지 이동이 끝날 때까지 기다린다. 실제 사이트는 클릭 뒤 이동에 1~2초가 걸리고,
+    이동 중에 som.js 를 실행하면 'Execution context was destroyed' 로 죽는다."""
+    try:
+        page.wait_for_load_state("load", timeout=timeout_ms)
+    except PWError:
+        pass                         # 계속 네트워크가 도는 사이트는 load 가 늦어도 그냥 진행
+
+
+def capture(page, shot_path: pathlib.Path) -> Screen:
+    """som.js 실행 + 캡처. 이동 중이면 잠깐 기다렸다 다시 시도한다."""
+    for attempt in range(6):
+        settle(page)
+        try:
+            scr = Screen.from_js(page.evaluate(SOM_JS))
+            h = page.evaluate(f"Math.min({VIEWPORT['height']}, Math.max(220, document.body.scrollHeight + 24))")
+            page.screenshot(path=str(shot_path), clip={"x": 0, "y": 0, "width": VIEWPORT["width"], "height": h})
+            return scr
+        except PWError as e:
+            if "Execution context was destroyed" in str(e) or "navigat" in str(e).lower():
+                page.wait_for_timeout(700)
+                continue
+            raise
+    raise RuntimeError("페이지가 계속 이동 중이라 화면을 읽지 못함")
+
+
 def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
              confirm: bool = True) -> str:
     print(f"\n▶ {site} ({action}) — {url}")
-    page.goto(url, wait_until="networkidle")
+    page.goto(url, wait_until="domcontentloaded")
+    settle(page, 15000)
     history: list[str] = []          # "<path>|<label>"
     result = "incomplete"
     step = 0
@@ -146,10 +173,8 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
 
     for step in range(1, MAX_STEPS + 1):
         page.wait_for_timeout(200)
-        scr = Screen.from_js(page.evaluate(SOM_JS))
         shot = f"shots/{site}_step_{step:02d}.png"
-        h = page.evaluate(f"Math.min({VIEWPORT['height']}, Math.max(220, document.body.scrollHeight + 24))")
-        page.screenshot(path=str(ROOT / shot), clip={"x": 0, "y": 0, "width": VIEWPORT["width"], "height": h})
+        scr = capture(page, ROOT / shot)
 
         act = llm.decide(action, scr, history, img_path=str(ROOT / shot))
         state.set_current(site, action, step, "running")
