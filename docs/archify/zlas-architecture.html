@@ -5250,7 +5250,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="security-group" data-composition-frame-id="0" data-composition-frame-label="사용자 기기 — 평문 보관·입력" x="230" y="150" width="440" height="254" rx="8" class="c-security-group" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="security-group" data-composition-frame-id="0" data-composition-frame-label="사용자 기기 — 평문 보관·입력 (앱 또는 PC)" x="230" y="150" width="440" height="254" rx="8" class="c-security-group" stroke-width="1"/>
 
         <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="네이버클라우드 — 가려진 화면만 받음" x="710" y="150" width="450" height="254" rx="12" class="c-region" stroke-width="1"/>
 
@@ -5299,6 +5299,14 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <path data-graph-role="automatic-crossover-underlay" d="M 1055 460 L 1055 384" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
           <path data-edge-from="feeds" data-edge-to="collector" data-edge-label="유출 덤프" data-edge-key="10" data-edge-id="feeds-collector" data-composition-points="1055,460;1055,384" data-composition-crossover="halo" data-composition-independent="true" d="M 1055 460 L 1055 384" class="a-dashed" data-animate="edge" style="--step:10" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         </g>
+        <g data-graph-role="automatic-crossover" style="--step:11">
+          <path data-graph-role="automatic-crossover-underlay" d="M 335 244 L 335 320" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="app" data-edge-to="agent_pc" data-edge-label="PC 선택 시" data-edge-key="11" data-edge-id="app-agentpc" data-composition-points="335,244;335,320" data-composition-crossover="halo" data-composition-independent="true" d="M 335 244 L 335 320" class="a-dashed" data-animate="edge" style="--step:11" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:12">
+          <path data-graph-role="automatic-crossover-underlay" d="M 349 320 L 349 304 Q 349 296 357 296 L 543 296 Q 551 296 551 304 L 551 320" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="agent_pc" data-edge-to="vault" data-edge-label="평문 읽기 · 쓰기" data-edge-key="12" data-edge-id="agentpc-vault" data-composition-points="349,320;349,296;551,296;551,320" data-composition-crossover="halo" data-composition-independent="true" d="M 349 320 L 349 304 Q 349 296 357 296 L 543 296 Q 551 296 551 304 L 551 320" class="a-security" data-animate="edge" style="--step:12" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+        </g>
 
         <!-- Components -->
         <g id="node-user" data-node-id="user" data-node-label="사용자" tabindex="0" role="button" aria-label="사용자 포커스, 승인 탭 · 2차 인증, 아키텍처 구성요소" aria-pressed="false" data-node-kind="external" data-node-sublabel="승인 탭 · 2차 인증" data-node-context="아키텍처 구성요소">
@@ -5312,8 +5320,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="105" y="226" class="t-muted" font-size="9" text-anchor="middle">승인 탭 · 2차 인증</text>
         </g>
 
-        <g id="node-app" data-node-id="app" data-node-label="Z-LAS 앱" tabindex="0" role="button" aria-label="Z-LAS 앱 포커스, iOS · Android · 데스크톱, 사용자 기기 — 평문 보관·입력" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="iOS · Android · 데스크톱" data-node-context="사용자 기기 — 평문 보관·입력">
-          <title>Z-LAS 앱 · iOS · Android · 데스크톱 · 사용자 기기 — 평문 보관·입력</title>
+        <g id="node-app" data-node-id="app" data-node-label="Z-LAS 앱" tabindex="0" role="button" aria-label="Z-LAS 앱 포커스, iOS · Android · 데스크톱, 사용자 기기 — 평문 보관·입력 (앱 또는 PC)" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="iOS · Android · 데스크톱" data-node-context="사용자 기기 — 평문 보관·입력 (앱 또는 PC)">
+          <title>Z-LAS 앱 · iOS · Android · 데스크톱 · 사용자 기기 — 평문 보관·입력 (앱 또는 PC)</title>
           <rect x="260" y="180" width="150" height="64" rx="8" class="c-mask"/>
           <rect x="260" y="180" width="150" height="64" rx="8" class="c-frontend" data-animate="node" style="--step:1" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(266 186) scale(0.6875)">
@@ -5326,20 +5334,20 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="335" y="226" class="t-muted" font-size="9" text-anchor="middle">iOS · Android · 데스크톱</text>
         </g>
 
-        <g id="node-agent" data-node-id="agent" data-node-label="로컬 에이전트" tabindex="0" role="button" aria-label="로컬 에이전트 포커스, 브라우저 조작 · 마스킹, 사용자 기기 — 평문 보관·입력" aria-pressed="false" data-node-kind="backend" data-node-sublabel="브라우저 조작 · 마스킹" data-node-tag="손" data-node-context="사용자 기기 — 평문 보관·입력">
-          <title>로컬 에이전트 · 브라우저 조작 · 마스킹 · 사용자 기기 — 평문 보관·입력 · 손</title>
+        <g id="node-agent" data-node-id="agent" data-node-label="웹뷰 에이전트" tabindex="0" role="button" aria-label="웹뷰 에이전트 포커스, iOS·Android 앱 내 WebView, 사용자 기기 — 평문 보관·입력 (앱 또는 PC)" aria-pressed="false" data-node-kind="backend" data-node-sublabel="iOS·Android 앱 내 WebView" data-node-tag="손 · 모바일" data-node-context="사용자 기기 — 평문 보관·입력 (앱 또는 PC)">
+          <title>웹뷰 에이전트 · iOS·Android 앱 내 WebView · 사용자 기기 — 평문 보관·입력 (앱 또는 PC) · 손 · 모바일</title>
           <rect x="490" y="180" width="150" height="64" rx="8" class="c-mask"/>
           <rect x="490" y="180" width="150" height="64" rx="8" class="c-backend" data-animate="node" style="--step:2" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(496 186) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="565" y="210" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">로컬 에이전트</text>
-        <text data-detail="context" x="565" y="226" class="t-muted" font-size="9" text-anchor="middle">브라우저 조작 · 마스킹</text>
-        <text data-detail="fine" x="565" y="236" class="t-backend" font-size="7" text-anchor="middle">손</text>
+          <text data-node-label="" data-detail-anchor="" x="565" y="210" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">웹뷰 에이전트</text>
+        <text data-detail="context" x="565" y="226" class="t-muted" font-size="9" text-anchor="middle">iOS·Android 앱 내 WebView</text>
+        <text data-detail="fine" x="565" y="236" class="t-backend" font-size="7" text-anchor="middle">손 · 모바일</text>
         </g>
 
-        <g id="node-vault" data-node-id="vault" data-node-label="키체인 볼트" tabindex="0" role="button" aria-label="키체인 볼트 포커스, 비밀번호 평문 · 해시, 사용자 기기 — 평문 보관·입력" aria-pressed="false" data-node-kind="database" data-node-sublabel="비밀번호 평문 · 해시" data-node-tag="평문은 여기만" data-node-context="사용자 기기 — 평문 보관·입력">
-          <title>키체인 볼트 · 비밀번호 평문 · 해시 · 사용자 기기 — 평문 보관·입력 · 평문은 여기만</title>
+        <g id="node-vault" data-node-id="vault" data-node-label="키체인 볼트" tabindex="0" role="button" aria-label="키체인 볼트 포커스, 평문 · 자동완성 확장, 사용자 기기 — 평문 보관·입력 (앱 또는 PC)" aria-pressed="false" data-node-kind="database" data-node-sublabel="평문 · 자동완성 확장" data-node-tag="평문은 여기만" data-node-context="사용자 기기 — 평문 보관·입력 (앱 또는 PC)">
+          <title>키체인 볼트 · 평문 · 자동완성 확장 · 사용자 기기 — 평문 보관·입력 (앱 또는 PC) · 평문은 여기만</title>
           <rect x="490" y="320" width="150" height="64" rx="8" class="c-mask"/>
           <rect x="490" y="320" width="150" height="64" rx="8" class="c-database" data-animate="node" style="--step:4" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(496 326) scale(0.6875)">
@@ -5347,7 +5355,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="565" y="350" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">키체인 볼트</text>
-        <text data-detail="context" x="565" y="366" class="t-muted" font-size="9" text-anchor="middle">비밀번호 평문 · 해시</text>
+        <text data-detail="context" x="565" y="366" class="t-muted" font-size="9" text-anchor="middle">평문 · 자동완성 확장</text>
         <text data-detail="fine" x="565" y="376" class="t-database" font-size="7" text-anchor="middle">평문은 여기만</text>
         </g>
 
@@ -5435,6 +5443,18 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="1055" y="506" class="t-muted" font-size="9" text-anchor="middle">텔레그램 · HIBP · 랜섬웨어</text>
         </g>
 
+        <g id="node-agent_pc" data-node-id="agent_pc" data-node-label="데스크톱 에이전트" tabindex="0" role="button" aria-label="데스크톱 에이전트 포커스, Playwright · 현재 코드, 사용자 기기 — 평문 보관·입력 (앱 또는 PC)" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Playwright · 현재 코드" data-node-tag="손 · PC" data-node-context="사용자 기기 — 평문 보관·입력 (앱 또는 PC)">
+          <title>데스크톱 에이전트 · Playwright · 현재 코드 · 사용자 기기 — 평문 보관·입력 (앱 또는 PC) · 손 · PC</title>
+          <rect x="260" y="320" width="150" height="64" rx="8" class="c-mask"/>
+          <rect x="260" y="320" width="150" height="64" rx="8" class="c-backend" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(266 326) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="335" y="350" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">데스크톱 에이전트</text>
+        <text data-detail="context" x="335" y="366" class="t-muted" font-size="9" text-anchor="middle">Playwright · 현재 코드</text>
+        <text data-detail="fine" x="335" y="376" class="t-backend" font-size="7" text-anchor="middle">손 · PC</text>
+        </g>
+
         <!-- Connection labels -->
         <g data-detail="context" data-edge-from="user" data-edge-to="app" data-edge-label="승인 탭" data-edge-key="0" data-edge-id="user-app">
           <rect x="193.2" y="192" width="43.6" height="14" rx="3" class="c-mask"/>
@@ -5449,8 +5469,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text x="565" y="170" class="t-edge-emphasis" font-size="8" text-anchor="middle">사용자 IP로 HTTPS</text>
         </g>
         <g data-detail="context" data-edge-from="agent" data-edge-to="vault" data-edge-label="평문 읽기 · 쓰기" data-edge-key="3" data-edge-id="agent-vault">
-          <rect x="472.20000000000005" y="275" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="515.6" y="285" class="t-edge-security" font-size="8" text-anchor="middle">평문 읽기 · 쓰기</text>
+          <rect x="571" y="275" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="614.4" y="285" class="t-edge-security" font-size="8" text-anchor="middle">평문 읽기 · 쓰기</text>
         </g>
         <g data-detail="context" data-edge-from="agent" data-edge-to="gateway" data-edge-label="마스킹 화면" data-edge-key="4" data-edge-id="agent-gateway">
           <rect x="658.6" y="183.95" width="62.8" height="14" rx="3" class="c-mask"/>
@@ -5480,11 +5500,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="1028.4" y="440" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
           <text x="1055" y="450" class="t-edge-dashed" font-size="8" text-anchor="middle">유출 덤프</text>
         </g>
+        <g data-detail="context" data-edge-from="app" data-edge-to="agent_pc" data-edge-label="PC 선택 시" data-edge-key="11" data-edge-id="app-agentpc">
+          <rect x="271" y="275" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="300" y="285" class="t-edge-dashed" font-size="8" text-anchor="middle">PC 선택 시</text>
+        </g>
+        <g data-detail="context" data-edge-from="agent_pc" data-edge-to="vault" data-edge-label="평문 읽기 · 쓰기" data-edge-key="12" data-edge-id="agentpc-vault">
+          <rect x="406.6" y="276" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="450" y="286" class="t-edge-security" font-size="8" text-anchor="middle">평문 읽기 · 쓰기</text>
+        </g>
 
         <!-- Boundary labels (foreground masks keep routes out of titles) -->
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="security-group" data-composition-frame-label="사용자 기기 — 평문 보관·입력">
-          <rect data-graph-role="structural-frame-label-mask" x="234" y="160" width="161.2" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="238" y="173" class="t-security" font-size="9" font-weight="600">사용자 기기 — 평문 보관·입력</text>
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="security-group" data-composition-frame-label="사용자 기기 — 평문 보관·입력 (앱 또는 PC)">
+          <rect data-graph-role="structural-frame-label-mask" x="234" y="160" width="231.4" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="238" y="173" class="t-security" font-size="9" font-weight="600">사용자 기기 — 평문 보관·입력 (앱 또는 PC)</text>
         </g>
 
         <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="네이버클라우드 — 가려진 화면만 받음">
@@ -5699,9 +5727,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>분리 실행</h3>
         </div>
         <ul>
-          <li>기기: 비밀번호 보관·입력, 사이트 접속(사용자 IP·세션)</li>
+          <li>모바일: 앱 안의 WebView를 JS 주입·스냅샷으로 조작 (OS가 허용하는 유일한 방식)</li>
+          <li>PC: Playwright가 로컬 브라우저 조작 (해커톤 구현)</li>
           <li>클라우드: 가려진 화면과 번호만 보고 좌표 JSON 반환</li>
-          <li>액션은 click · fill · handoff · done 네 가지뿐</li>
+          <li>사이트 접속은 항상 사용자 IP·세션</li>
         </ul>
       </div>
 
@@ -5738,6 +5767,20 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <li>같은 A100에서 QLoRA 파인튜닝, 화면 16개 병렬</li>
           <li>Passkey 전환, 패스워드 매니저 연동</li>
           <li>기업용: 임직원 계정 일괄 격리</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>모바일 제약과 대응</h3>
+        </div>
+        <ul>
+          <li>다른 앱·사파리 조작 불가 → 앱 내 WebView만</li>
+          <li>처리 중 앱을 열어 둬야 함 → 승인 흐름과 자연스럽게 결합</li>
+          <li>WebView 차단 사이트 → 직접 변경 안내로 폴백</li>
+          <li>/.well-known/change-password 로 변경 페이지 직행</li>
+          <li>Credential Provider·Autofill 확장으로 자동완성·저장</li>
         </ul>
       </div>
     </div>
