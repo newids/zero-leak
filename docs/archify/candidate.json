@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Z-LAS 서비스 아키텍처 — 분리 실행",
+    "title": "Zero-Leak 서비스 아키텍처 — 분리 실행",
     "output": "docs/archify/zlas-architecture.html",
     "quality_profile": "showcase",
     "locale": "ko"
@@ -26,7 +26,7 @@
     {
       "id": "app",
       "type": "frontend",
-      "label": "Z-LAS 앱",
+      "label": "Zero-Leak 앱",
       "sublabel": "iOS · Android · 데스크톱",
       "pos": [
         260,

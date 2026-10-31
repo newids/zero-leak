@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Z-LAS 사용자 앱 (실제 서비스 화면과 같은 데모 프론트).  마케터 담당.
+Zero-Leak 사용자 앱 (실제 서비스 화면과 같은 데모 프론트).  마케터 담당.
 - userapp.html 한 장을 서빙하고, 같은 파일 계약(shared/*.json, shots/)을 JSON API로 노출한다.
 - detect.py / agent.py 는 subprocess 로 실행. 함수 import 금지.
 실행: cd dashboard && python userapp.py   → http://localhost:8502
