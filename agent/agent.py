@@ -30,19 +30,24 @@ SHOTS = ROOT / "shots"
 SHOTS.mkdir(exist_ok=True)
 SOM_JS = (pathlib.Path(__file__).parent / "som.js").read_text()
 
-MAX_STEPS = 12
+MAX_STEPS = int(os.getenv("MAX_STEPS", "12"))
 APPROVE_TIMEOUT = int(os.getenv("APPROVE_TIMEOUT", "30"))   # 승인 대기 최대 초
 HANDOFF_POLL = 0.5
 TESTBED_HOSTS = {"localhost", "127.0.0.1"}
+ALLOWED_HOSTS = set(TESTBED_HOSTS)      # --allow-host 로 실제 사이트를 명시적으로 추가할 때만 넓어진다
+APPROVE_STDIN = False                   # --approve-enter: 승인 대기 중 터미널 Enter 로도 승인
+VIEWPORT = {"width": 720, "height": 460}
 # 최종 제출 버튼 앞에서 사람 승인을 받는다 (데모: "변경 직전에 멈추고 [변경 확정]").
 CONFIRM_WORDS = ["변경하기", "비밀번호 변경", "회원 탈퇴", "탈퇴하기", "저장", "제출"]
 
 # 데모용 입력 값 (실제 비밀번호 아님). 실제 서비스에서는 OS 키체인에서 읽는다.
+# 실제 사이트 테스트: ZL_EMAIL / ZL_CURRENT_PASSWORD / ZL_NEW_PASSWORD / ZL_REASON 환경변수가 있으면 그 값을 쓴다.
+# 값은 코드·로그·state.json·화면 어디에도 찍지 않는다. llm.MONITOR 와 네트워크 감시의 검색어로만 쓴다.
 FIELD_VALUES = {
-    "email": "demo1@zlas.kr",
-    "current_password": "Test1234!",
-    "new_password": "N9#mK2$pLq7!",
-    "reason": "서비스를 더 이상 사용하지 않음",
+    "email": os.getenv("ZL_EMAIL", "demo1@zlas.kr"),
+    "current_password": os.getenv("ZL_CURRENT_PASSWORD", "Test1234!"),
+    "new_password": os.getenv("ZL_NEW_PASSWORD", "N9#mK2$pLq7!"),
+    "reason": os.getenv("ZL_REASON", "서비스를 더 이상 사용하지 않음"),
 }
 
 
@@ -89,7 +94,7 @@ def attach_network_monitor(page, state: State):
     secrets = [v for k, v in FIELD_VALUES.items() if "password" in k]
     def on_request(req):
         host = urlparse(req.url).hostname or ""
-        if host in TESTBED_HOSTS:
+        if host in ALLOWED_HOSTS:       # 조작 대상 사이트 자신에게 비밀번호를 보내는 건 정상 (로그인·변경 폼)
             return
         body = (req.post_data or "") + req.url
         for s in secrets:
@@ -103,6 +108,16 @@ def wait_for_approval(site: str) -> str:
     flag, skip = SHARED / "approve.flag", SHARED / "skip.flag"
     flag.unlink(missing_ok=True)
     skip.unlink(missing_ok=True)
+    if APPROVE_STDIN:                   # 실제 사이트 테스트: 대시보드 없이 터미널에서 바로 승인
+        try:
+            ans = input(f"  ⏸  승인 대기: {site} — Enter=승인 / s=건너뛰기 / n=중단 > ").strip().lower()
+        except EOFError:
+            ans = "n"
+        if ans == "":
+            print("  ▶  승인 확인"); return "approved"
+        if ans == "s":
+            print("  ↷  사용자가 건너뜀"); return "skipped"
+        print("  ✗  사용자가 중단"); return "timeout"
     print(f"  ⏸  승인 대기: {site} (shared/approve.flag | skip.flag, {APPROVE_TIMEOUT}s)")
     deadline = time.time() + APPROVE_TIMEOUT
     while time.time() < deadline:
@@ -132,8 +147,8 @@ def run_site(page, llm: LLM, state: State, site: str, url: str, action: str,
         page.wait_for_timeout(200)
         scr = Screen.from_js(page.evaluate(SOM_JS))
         shot = f"shots/{site}_step_{step:02d}.png"
-        h = page.evaluate("Math.min(460, Math.max(220, document.body.scrollHeight + 24))")
-        page.screenshot(path=str(ROOT / shot), clip={"x": 0, "y": 0, "width": 720, "height": h})
+        h = page.evaluate(f"Math.min({VIEWPORT['height']}, Math.max(220, document.body.scrollHeight + 24))")
+        page.screenshot(path=str(ROOT / shot), clip={"x": 0, "y": 0, "width": VIEWPORT["width"], "height": h})
 
         act = llm.decide(action, scr, history, img_path=str(ROOT / shot))
         state.set_current(site, action, step, "running")
@@ -197,6 +212,9 @@ def load_targets(args) -> list[dict]:
     vault = json.loads((SHARED / "vault.json").read_text())
     MONITOR.add_secrets(*[v["password"] for v in vault],
                         *[v for k, v in FIELD_VALUES.items() if "password" in k])
+    if args.url:                        # 실제 사이트 테스트 (--allow-host 로 호스트를 명시해야 통과)
+        host = urlparse(args.url).hostname or ""
+        return [{"site": args.site_name or host, "url": args.url, "action": args.goal}]
     if args.all:
         risk_path = SHARED / "risk.json"
         if not risk_path.exists():
@@ -211,6 +229,7 @@ def load_targets(args) -> list[dict]:
 
 
 def main():
+    global MAX_STEPS, APPROVE_STDIN, VIEWPORT
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", choices=["shop", "webhard"])
     ap.add_argument("--all", action="store_true")
@@ -220,14 +239,33 @@ def main():
                     help="에이전트 브라우저 화면을 webm 으로 녹화 (데모 영상용)")
     ap.add_argument("--no-confirm", action="store_true",
                     help="최종 제출 전 승인 대기를 생략 (자동 테스트용)")
+    # 실제 사이트 테스트 (본인 소유 계정, 팀 합의 하에만). 기본값은 테스트베드 전용 그대로.
+    ap.add_argument("--url", help="조작할 시작 URL. --allow-host 에 그 호스트를 적어야 실행됨")
+    ap.add_argument("--allow-host", action="append", default=[], metavar="HOST",
+                    help="테스트베드 외 허용 호스트 (반복 가능). 비밀번호는 이 호스트에만 전송 허용")
+    ap.add_argument("--goal", choices=["change", "withdraw"], default="change", help="--url 일 때 목표")
+    ap.add_argument("--site-name", help="--url 일 때 기록·캡처에 쓸 이름 (기본: 호스트명)")
+    ap.add_argument("--max-steps", type=int, default=MAX_STEPS, help=f"최대 단계 (기본 {MAX_STEPS})")
+    ap.add_argument("--viewport", default=f"{VIEWPORT['width']}x{VIEWPORT['height']}",
+                    help="브라우저 크기 WxH. 실제 사이트는 1280x800 권장")
+    ap.add_argument("--approve-enter", action="store_true",
+                    help="승인 대기 때 대시보드 대신 터미널 Enter 로 승인 (실제 사이트 테스트용)")
     args = ap.parse_args()
-    if not args.site and not args.all:
-        ap.error("--site 또는 --all 필요")
+    if not args.site and not args.all and not args.url:
+        ap.error("--site, --all 또는 --url 필요")
+
+    MAX_STEPS, APPROVE_STDIN = args.max_steps, args.approve_enter
+    w, h = (int(x) for x in args.viewport.lower().split("x"))
+    VIEWPORT = {"width": w, "height": h}
+    ALLOWED_HOSTS.update(args.allow_host)
 
     targets = load_targets(args)
     for t in targets:
-        if (urlparse(t["url"]).hostname or "") not in TESTBED_HOSTS:
-            sys.exit(f"테스트베드 외 사이트 거부: {t['url']}")
+        if (urlparse(t["url"]).hostname or "") not in ALLOWED_HOSTS:
+            sys.exit(f"허용되지 않은 사이트 거부: {t['url']}  (--allow-host {urlparse(t['url']).hostname} 로 명시)")
+    if args.url:
+        print(f"!! 실제 사이트 모드: {args.url}  허용 호스트={sorted(ALLOWED_HOSTS - TESTBED_HOSTS)}  "
+              f"계정값 출처={'환경변수' if os.getenv('ZL_CURRENT_PASSWORD') else '데모 기본값(주의)'}")
 
     llm = LLM(args.provider)
     state = State(llm.provider)
@@ -237,10 +275,10 @@ def main():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.headful)
-        ctx_kw = {"viewport": {"width": 720, "height": 460}}
+        ctx_kw = {"viewport": dict(VIEWPORT)}
         if args.record:
             ctx_kw |= {"record_video_dir": args.record,
-                       "record_video_size": {"width": 720, "height": 460}}
+                       "record_video_size": dict(VIEWPORT)}
         context = browser.new_context(**ctx_kw)
         page = context.new_page()
         attach_network_monitor(page, state)
