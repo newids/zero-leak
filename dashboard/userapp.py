@@ -47,7 +47,8 @@ def state():
         latest[site] = {"file": p.name, "step": int(step), "mtime": p.stat().st_mtime}
     steps = st.get("steps", [])
     pending = None
-    if running() and steps and steps[-1]["status"] == "handoff" and not (SHARED / "approve.flag").exists():
+    if running() and steps and steps[-1]["status"] == "handoff" \
+            and not (SHARED / "approve.flag").exists() and not (SHARED / "skip.flag").exists():
         pending = {"site": steps[-1]["site"], "reason": steps[-1]["action_json"].get("reason", "")}
     return jsonify({"risk": risk, "state": st, "shots": latest, "running": running(),
                     "pending": pending, "vault": [{"site": v["site"], "email": v["email"],
@@ -66,6 +67,7 @@ def protect():
     if running():
         return jsonify({"ok": False, "why": "already running"})
     (SHARED / "approve.flag").unlink(missing_ok=True)
+    (SHARED / "skip.flag").unlink(missing_ok=True)
     for p in SHOTS.glob("*.png"):
         p.unlink()
     provider = request.json.get("provider", os.getenv("LLM_PROVIDER", "mock")) if request.is_json else "mock"
@@ -82,11 +84,17 @@ def approve():
     return jsonify({"ok": True})
 
 
+@app.post("/api/skip")
+def skip():
+    (SHARED / "skip.flag").write_text(request.json.get("site", "") if request.is_json else "")
+    return jsonify({"ok": True})
+
+
 @app.post("/api/reset")
 def reset():
     if running():
         PROC["agent"].terminate()
-    for p in [SHARED / "state.json", SHARED / "risk.json", SHARED / "approve.flag"]:
+    for p in [SHARED / "state.json", SHARED / "risk.json", SHARED / "approve.flag", SHARED / "skip.flag"]:
         p.unlink(missing_ok=True)
     for p in SHOTS.glob("*.png"):
         p.unlink()

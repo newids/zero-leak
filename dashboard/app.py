@@ -85,6 +85,7 @@ with left:
         st.graphviz_chart(domino_dot(risk), use_container_width=True)
         if st.button("⚡ 원클릭 일괄 방어", use_container_width=True, disabled=agent_running()):
             (SHARED / "approve.flag").unlink(missing_ok=True)
+            (SHARED / "skip.flag").unlink(missing_ok=True)
             st.session_state["agent_proc"] = subprocess.Popen(
                 [sys.executable, str(AGENT), "--all", "--provider", PROVIDER],
                 cwd=str(AGENT.parent), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -134,6 +135,9 @@ def approval_and_report():
         if st.button("✅ 변경 확정 (승인)", type="primary", use_container_width=True):
             (SHARED / "approve.flag").write_text(cur.get("site", ""))
             st.toast("승인 전달")
+        if st.button("↷ 이 사이트는 건너뛰기", use_container_width=True):
+            (SHARED / "skip.flag").write_text(cur.get("site", ""))
+            st.toast("건너뜀")
     else:
         st.markdown('<div class="ok">인증·최종 확인이 필요하면 여기에 승인 버튼이 뜹니다.</div>',
                     unsafe_allow_html=True)
