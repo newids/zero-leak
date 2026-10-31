@@ -3,7 +3,7 @@
 유출된 비밀번호를 탐지해 같은 패턴을 쓴 사이트를 찾고, 브라우저를 자율 조작해
 비밀번호 변경·서비스 탈퇴를 대행하는 에이전트. 네이버클라우드 AI 해커톤 출품작.
 
-핵심 설계는 **분리 실행(Split-Execution)**: 클라우드(A100 VLM / Claude)는 마스킹된 화면을 보고
+핵심 설계는 **분리 실행(Split-Execution)**: 클라우드(L4 VLM / Claude)는 마스킹된 화면을 보고
 "어디를 누를지"만 판단하고, 비밀번호 보관·입력은 사용자 기기의 로컬 에이전트가 한다.
 비밀번호 평문은 외부로 나가지 않으며, 그 사실을 실행 때마다 측정해 `state.json` 에 기록한다.
 
@@ -34,14 +34,14 @@ cd agent   && python agent.py --all --provider mock   # 키 없이 전체 흐름
 | `testbed/` | 기획자 | Flask 테스트베드 2종. 실제 사이트에는 접속하지 않는다 |
 | `dashboard/` | 마케터 | Streamlit 3열 대시보드, 승인 버튼 |
 | `shared/` | 계약 | `contract.md` 가 유일한 인터페이스. JSON 파일로만 통신 |
-| `infra/` | 개발자 | `a100_setup.sh` — A100 에 vLLM(Qwen2.5-VL) 기동 |
+| `infra/` | 개발자 | `gpu_setup.sh` — L4 GPU 서버에 vLLM(Qwen2.5-VL-7B-AWQ) 기동 |
 
 ## 모델 경로
 
 | `LLM_PROVIDER` | 1차 판단 | 승격 | 가드레일 2차 |
 | --- | --- | --- | --- |
 | `mock` | 규칙 기반 (키 불필요) | — | 규칙 |
-| `vllm` | A100 vLLM Qwen2.5-VL | 신뢰도 < 0.6 이면 Claude | 규칙 + Claude(키 있으면) |
+| `vllm` | L4 vLLM Qwen2.5-VL | 신뢰도 < 0.6 이면 Claude | 규칙 + Claude(키 있으면) |
 | `claude` | Claude (이미지 입력) | — | 규칙 + Claude |
 | `openai` | OpenAI (이미지 입력) | — | 규칙 + OpenAI |
 
