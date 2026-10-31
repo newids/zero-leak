@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-VLM 스모크 테스트 (VLM 담당). 실제 캡처 1장 + 요소 목록을 agent/llm.py 의 진짜 코드 경로로 보내
-원문 응답·JSON 준수·지연시간·승격 여부를 확인한다. agent.py 전체 루프 없이 모델만 시험할 때 쓴다.
+VLM 스모크 테스트 (VLM 담당). 테스트베드의 실제 화면을 Playwright 로 열어 som.js 로 요소 목록·캡처를 만들고,
+agent/llm.py 의 진짜 코드 경로(decide = 1차 + 승격 + 가드레일)로 보내 원문 응답·JSON 준수·지연·판정을 확인한다.
+요소 목록을 손으로 적지 않고 매번 현재 테스트베드에서 생성하므로, 테스트베드 레이아웃이 바뀌어도 그대로 쓴다.
+기대값은 번호가 아니라 '문구'로 적고 실행 시점에 번호로 바꾼다.
 
-실행 (저장소 루트에서):
+실행 (저장소 루트, 테스트베드 :5001 기동 상태, .env 는 직접 읽음):
   python infra/probe_vlm.py                      # .env 의 LLM_PROVIDER (기본 vllm)
   python infra/probe_vlm.py --provider claude    # 비교용
-  python infra/probe_vlm.py --case shop_pw       # 다른 화면
-.env 는 직접 읽는다 (python-dotenv 미사용 프로젝트).
+  python infra/probe_vlm.py --case webhard_trap  # 한 케이스만
 """
 from __future__ import annotations
-import argparse, json, os, pathlib, sys, time
+import argparse, os, pathlib, sys, time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "agent"))
+TESTBED = os.getenv("TESTBED_URL", "http://localhost:5001")
+SHOTS = ROOT / "shots" / "probe"
 
 
 def load_env():
@@ -27,100 +30,101 @@ def load_env():
             os.environ.setdefault(k.strip(), v.strip())
 
 
-# 시험 화면: mock 실행으로 만든 shots/ 와 같은 페이지의 요소 목록 (som.js 출력과 동일 형식)
+# 케이스: 어느 경로를 열고(prep 으로 입력란을 미리 채울 수 있음), 어떤 한 걸음을 기대하는지.
+# expect 의 label 은 요소 문구의 일부 일치. field 는 fill 일 때만.
 CASES = {
-    "webhard_trap": dict(
-        goal="withdraw", shot="shots/데모웹하드_step_04.png",
-        screen=dict(path="/webhard/leave1", title="잠깐만요!", headings=["잠깐만요!"], elements=[
-            {"n": 1, "label": "혜택을 유지하고 계속 이용하기", "kind": "link", "x": 0, "y": 0},
-            {"n": 2, "label": "포기하고 떠나기", "kind": "link", "x": 0, "y": 0}]),
-        expect={"tool": "click", "n": 2}),
-    "shop_pw": dict(
-        goal="change", shot="shots/데모쇼핑_step_06.png",
-        screen=dict(path="/shop/pw", title="비밀번호 변경", headings=["비밀번호 변경"], elements=[
-            {"n": 1, "label": "현재 비밀번호 (비밀번호)", "kind": "input", "x": 0, "y": 0},
-            {"n": 2, "label": "새 비밀번호 (비밀번호)", "kind": "input", "x": 0, "y": 0},
-            {"n": 3, "label": "변경하기", "kind": "button", "x": 0, "y": 0}]),
-        expect={"tool": "fill", "n": 1, "field": "current_password"}),
-    "shop_account": dict(
-        goal="change", shot="shots/데모쇼핑_step_05.png",
-        screen=dict(path="/shop/account", title="회원정보 수정", headings=["회원정보 수정"], elements=[
-            {"n": 1, "label": "비밀번호 변경", "kind": "link", "x": 0, "y": 0},
-            {"n": 2, "label": "배송지 관리", "kind": "link", "x": 0, "y": 0}]),
-        expect={"tool": "click", "n": 1}),
+    "shop_login": dict(goal="change", path="/shop", history=[],
+                       expect=dict(tool="fill", label="아이디", field="email")),
+    "shop_login_filled": dict(goal="change", path="/shop",
+                              prep={"input:not([type=password]):not([type=checkbox]):not([type=submit])": "demo1@zlas.kr",
+                                    "input[type=password]": "Test1234!"},
+                              history=["/shop|아이디", "/shop|비밀번호"],
+                              expect=dict(tool="click", label="로그인")),
+    "shop_my": dict(goal="change", path="/shop/my", history=["/shop|로그인"],
+                    expect=dict(tool="click", label="정보 변경")),
+    "shop_account": dict(goal="change", path="/shop/account", history=["/shop/my|정보 변경"],
+                         expect=dict(tool="click", label="비밀번호 변경")),
+    "shop_pw": dict(goal="change", path="/shop/pw", history=["/shop/account|비밀번호 변경"],
+                    expect=dict(tool="fill", label="현재 비밀번호", field="current_password")),
+    "webhard_trap": dict(goal="withdraw", path="/webhard/leave1", history=["/webhard/account|회원 탈퇴"],
+                         expect=dict(tool="click", label="포기하고 떠나기")),
 }
+
+
+def capture(pg, som_js, path, prep):
+    pg.goto(TESTBED + path, wait_until="networkidle")
+    for sel, val in (prep or {}).items():
+        loc = pg.locator(sel).first
+        if loc.count():
+            loc.fill(val)
+    d = pg.evaluate(som_js)
+    SHOTS.mkdir(parents=True, exist_ok=True)
+    shot = SHOTS / (path.strip("/").replace("/", "_") + ".png")
+    h = pg.evaluate("Math.min(460, Math.max(220, document.body.scrollHeight + 24))")
+    pg.screenshot(path=str(shot), clip={"x": 0, "y": 0, "width": 720, "height": h})
+    return d, str(shot)
 
 
 def main():
     load_env()
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", default=os.getenv("LLM_PROVIDER", "vllm"))
-    ap.add_argument("--case", choices=sorted(CASES), default="webhard_trap")
-    ap.add_argument("--all", action="store_true", help="모든 케이스 실행")
+    ap.add_argument("--case", choices=sorted(CASES))
     args = ap.parse_args()
 
-    import llm as llm_mod
-
-    # 임시 대체: llm._claude 는 temperature=0 을 보내는데 claude-opus-4-8 은 이를 400 으로 거부한다
-    # ("`temperature` is deprecated for this model"). 진짜 수정은 agent/llm.py (개발자) 에서 해야 하며,
-    # 그 전까지 이 probe 안에서만 temperature 없는 버전으로 바꿔 끼운다. 그 외 동작은 원본과 동일.
-    def _claude_no_temperature(messages_text, system, img_path, *, api_key, model, max_tokens=300):
-        import anthropic
-        llm_mod.MONITOR.scan(system + messages_text, f"claude:{model}")
-        client = anthropic.Anthropic(api_key=api_key)
-        blocks = [{"type": "text", "text": messages_text}]
-        if img_path and os.path.exists(img_path):
-            blocks.insert(0, {"type": "image", "source": {
-                "type": "base64", "media_type": "image/png", "data": llm_mod._b64(img_path)}})
-        msg = client.messages.create(model=model, max_tokens=max_tokens, system=system,
-                                     messages=[{"role": "user", "content": blocks}])
-        return "".join(b.text for b in msg.content if b.type == "text")
-    llm_mod._claude = _claude_no_temperature
-
+    from playwright.sync_api import sync_playwright
     from llm import LLM, Screen, MONITOR, _openai_compatible, _claude, _system_prompt, _user_prompt, _parse
     MONITOR.add_secrets("Test1234!", "N9#mK2$pLq7!")
-    names = sorted(CASES) if args.all else [args.case]
-    ok_all = True
+    som_js = (ROOT / "agent" / "som.js").read_text()
+    names = [args.case] if args.case else list(CASES)
+    results = []
 
-    for name in names:
-        c = CASES[name]
-        scr = Screen.from_js(c["screen"])
-        img = str(ROOT / c["shot"])
-        if not os.path.exists(img):
-            sys.exit(f"{c['shot']} 없음 — 먼저 cd agent && python agent.py --all --provider mock --no-confirm")
-        print(f"\n=== {name}  provider={args.provider}  shot={c['shot']}")
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        pg = browser.new_page(viewport={"width": 720, "height": 460})
+        for name in names:
+            c = CASES[name]
+            d, shot = capture(pg, som_js, c["path"], c.get("prep"))
+            scr = Screen.from_js(d)
+            exp = c["expect"]
+            exp_el = next((e for e in scr.elements if exp["label"] in e["label"]), None)
+            print(f"\n=== {name}  provider={args.provider}  {c['path']}  요소 {len(scr.elements)}개")
+            if not exp_el:
+                print(f"  !! 기대 문구 '{exp['label']}' 가 화면에 없음 — 테스트베드 변경 확인"); results.append(False); continue
+            expect = {"tool": exp["tool"], "n": exp_el["n"]} | ({"field": exp["field"]} if "field" in exp else {})
 
-        # 1) 원문 응답: JSON 준수 여부를 눈으로 본다 (가드레일·승격 없이 1차 호출만)
-        t0 = time.time()
-        if args.provider == "vllm":
-            raw = _openai_compatible(_user_prompt(c["goal"], scr, []), _system_prompt(), img,
-                                     base_url=os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
-                                     api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
-                                     model=os.getenv("VLLM_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct"))
-        elif args.provider == "claude":
-            raw = _claude(_user_prompt(c["goal"], scr, []), _system_prompt(), img,
-                          api_key=os.getenv("ANTHROPIC_API_KEY", ""),
-                          model=os.getenv("CLAUDE_MODEL", "claude-opus-4-8"))
-        else:
-            raw = "(mock: 원문 없음)"
-        raw_ms = int((time.time() - t0) * 1000)
-        print(f"[원문 {raw_ms}ms] {raw.strip()[:300]!r}")
-        if args.provider != "mock":
-            parsed = _parse(raw)
-            print(f"[파싱] {parsed.as_dict()} conf={parsed.confidence:.2f}"
-                  + ("  <-- JSON 파싱 실패" if parsed.confidence == 0.0 and parsed.tool == "handoff" else ""))
+            # 1) 원문: JSON 준수를 눈으로 본다 (승격·가드레일 없이 1차 호출만)
+            t0 = time.time()
+            if args.provider == "vllm":
+                raw = _openai_compatible(_user_prompt(c["goal"], scr, c["history"]), _system_prompt(), shot,
+                                         base_url=os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
+                                         api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
+                                         model=os.getenv("VLLM_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct"))
+            elif args.provider == "claude":
+                raw = _claude(_user_prompt(c["goal"], scr, c["history"]), _system_prompt(), shot,
+                              api_key=os.getenv("ANTHROPIC_API_KEY", ""),
+                              model=os.getenv("CLAUDE_MODEL", "claude-opus-4-8"))
+            else:
+                raw = "(mock: 원문 없음)"
+            print(f"  [원문 {int((time.time()-t0)*1000)}ms] {raw.strip()[:200]!r}")
+            if args.provider != "mock":
+                pa = _parse(raw)
+                print(f"  [파싱] {pa.as_dict()} conf={pa.confidence:.2f}"
+                      + ("  <-- JSON 파싱 실패" if pa.confidence == 0.0 and pa.tool == "handoff" else ""))
 
-        # 2) 실제 경로: decide() = 1차 + 승격 + 가드레일
-        llm = LLM(args.provider)
-        act = llm.decide(c["goal"], scr, [], img_path=img)
-        got = {k: v for k, v in act.as_dict().items() if k in c["expect"]}
-        ok = got == c["expect"]
-        ok_all &= ok
-        print(f"[decide {llm.last_ms}ms via {llm.last_route}] {act.as_dict()} conf={act.confidence:.2f}"
-              f"  기대={c['expect']}  {'✅' if ok else '❌'}")
+            # 2) 실제 경로: decide() = 1차 + 반복 감지 + 승격 + 가드레일
+            llm = LLM(args.provider)
+            act = llm.decide(c["goal"], scr, c["history"], img_path=shot)
+            got = {k: v for k, v in act.as_dict().items() if k in expect}
+            ok = got == expect
+            results.append(ok)
+            lab = next((e["label"] for e in scr.elements if e["n"] == act.n), "") if act.n is not None else ""
+            print(f"  [decide {llm.last_ms}ms via {llm.last_route}] {act.as_dict()} '{lab}' conf={act.confidence:.2f}"
+                  f"  기대={expect} '{exp_el['label']}'  {'✅' if ok else '❌'}")
+        browser.close()
 
-    print(f"\n평문 감시: 검사 {MONITOR.checked}건 · 위반 {len(MONITOR.violations)}건")
-    sys.exit(0 if ok_all and not MONITOR.violations else 1)
+    print(f"\n결과: {sum(results)}/{len(results)} ✅ · 평문 감시: 검사 {MONITOR.checked}건 · 위반 {len(MONITOR.violations)}건")
+    sys.exit(0 if all(results) and not MONITOR.violations else 1)
 
 
 if __name__ == "__main__":
