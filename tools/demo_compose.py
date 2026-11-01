@@ -68,11 +68,16 @@ subprocess.run(["ffmpeg","-y","-loglevel","error","-i",PH,"-i",AG,"-filter_compl
 (S/"outro3.txt").write_text("github.com/newids/zero-leak")
 def card(out,d,l1,l2,l3,s1=140):
     subprocess.run(["ffmpeg","-y","-loglevel","error","-f","lavfi","-i",f"color=c=0x0F1A20:s=1920x1080:d={d}:r=30","-vf",
-        f"drawtext=fontfile={FONT}:textfile={S}/{l1}:fontsize={s1}:fontcolor=white:x=(w-text_w)/2:y='380-20*(1-min(1,t/0.8))':alpha='min(1,t/0.8)',"
+        f"drawtext=fontfile={FONT}:textfile={S}/{l1}:fontsize={s1}:fontcolor=white:x=(w-text_w)/2:y='380-12*(1-min(1,t/0.6))',"
         f"drawtext=fontfile={FONTR}:textfile={S}/{l2}:fontsize=44:fontcolor=0x9FE3D4:x=(w-text_w)/2:y=580:alpha='min(1,max(0,(t-0.5)/0.8))',"
         f"drawtext=fontfile={FONTR}:textfile={S}/{l3}:fontsize=30:fontcolor=0xBFD8D5:x=(w-text_w)/2:y=680:alpha='min(1,max(0,(t-1.0)/0.8))',fade=t=out:st={d-0.7}:d=0.7",
         "-c:v","libx264","-pix_fmt","yuv420p",str(S/out)],check=True)
-card("intro.mp4",4,"intro1.txt","intro2.txt","intro3.txt"); card("outro.mp4",5.5,"outro1.txt","outro2.txt","outro3.txt",s1=72)
+card("intro.mp4",4,"intro1.txt","intro2.txt","intro3.txt"); (S/"thanks1.txt").write_text("감사합니다."); (S/"thanks2.txt").write_text("Zero-Leak — 변경 1 · 탈퇴 1 · 비밀번호 평문 전송 0건"); (S/"thanks3.txt").write_text("github.com/newids/zero-leak")
+subprocess.run(["ffmpeg","-y","-loglevel","error","-f","lavfi","-i","color=c=0x0F1A20:s=1920x1080:d=5.6:r=30","-vf",
+    f"drawtext=fontfile={FONT}:textfile={S}/thanks1.txt:fontsize=150:fontcolor=white:x=(w-text_w)/2:y='(h-text_h)/2-60-12*(1-min(1,t/0.6))',"
+    f"drawtext=fontfile={FONTR}:textfile={S}/thanks2.txt:fontsize=40:fontcolor=0x9FE3D4:x=(w-text_w)/2:y=(h-text_h)/2+120:alpha='min(1,max(0,(t-0.5)/0.6))',"
+    f"drawtext=fontfile={FONTR}:textfile={S}/thanks3.txt:fontsize=30:fontcolor=0xBFD8D5:x=(w-text_w)/2:y=(h-text_h)/2+190:alpha='min(1,max(0,(t-0.9)/0.6))'",
+    "-c:v","libx264","-pix_fmt","yuv420p",str(S/"outro.mp4")],check=True)
 (S/"mid1.txt").write_text("유출 1건 → 2개 사이트 조치 완료"); (S/"mid2.txt").write_text("변경 1 · 탈퇴 1 · 사용자 확정 2회 · 비밀번호 평문 전송 0건")
 (S/"mid3.txt").write_text("다음 — 계정은 어떻게 등록하나?")
 card("mid.mp4",4.5,"mid1.txt","mid2.txt","mid3.txt",s1=84)
