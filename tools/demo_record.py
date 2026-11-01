@@ -32,8 +32,9 @@ with sync_playwright() as p:
     while time.time()-t_run<150:
         pg.wait_for_timeout(500)
         if pg.locator("#sheet.on").count():
-            mark("sheet "+pg.get_attribute("#approveBtn","data-site")); pg.wait_for_timeout(3500)
-            click("#approveBtn"); pg.wait_for_timeout(1500)
+            site=pg.get_attribute("#approveBtn","data-site"); mark("sheet "+site)
+            while pg.locator("#sheet.on").count(): pg.wait_for_timeout(200)      # 5초 자동 확정을 그대로 보여 준다
+            mark("auto "+site); pg.wait_for_timeout(1200)
         if pg.locator("#s-done.on").count(): mark("done"); break
     pg.wait_for_timeout(5500)
     click(".tabbar [data-tab=accounts]"); mark("accounts"); pg.wait_for_timeout(2500)

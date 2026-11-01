@@ -12,18 +12,20 @@ cues=[(0,ev["click #pushGo"]-0.3,"다크웹에 개인 계정 유출 덤프 등�
  (ev["scroll .rule"],ev["scroll #protectBtn"]-0.2,"사용자의 비밀번호는 온디바이스에서 처리되므로 안전\n비밀번호를 변경할지 사이트를 탈퇴할지 사용자가 선택할 수 있습니다"),
  (ev["scroll #protectBtn"],ev["run"]+5.5,"Zero-Leak이 쇼핑몰에 로그인\n사이트마다 다른 ‘비밀번호 변경 페이지’ 접근은 VLM이 담당"),
  (ev["run"]+5.7,ev["sheet 데모쇼핑"]-0.2,"검은 사각형 = 비밀번호 칸\n이때 개인정보가 유출되지 않도록 마스킹 처리"),
- (ev["sheet 데모쇼핑"],ev["click #approveBtn"]+1.2,"사용자 개입 최소화\n2FA·탈퇴 승인 등을 제외하고 전 과정이 자동으로 이루어짐"),
- (ev["click #approveBtn"]+1.4,ev["sheet 데모웹하드"]-0.2,"웹하드 탈퇴 과정 예시\n남은 적립금으로 탈퇴를 만류하는 팝업 등 자동 처리"),
- (ev["sheet 데모웹하드"],ev["done"]-0.2,"탈퇴 사유까지 Zero-Leak이 입력\n마지막 확정은 사용자"),
+ (ev["sheet 데모쇼핑"],ev["auto 데모쇼핑"]+0.8,"제출 직전 5초, 그대로 두면 자동 확정\n2FA·거부 응답 등 예외만 사용자 개입"),
+ (ev["auto 데모쇼핑"]+1.0,ev["auto 데모쇼핑"]+4.0,"쇼핑몰 비밀번호 변경 완료"),
+ (ev["auto 데모쇼핑"]+4.2,ev["sheet 데모웹하드"]-0.2,"웹하드 탈퇴 과정 예시\n보관 파일을 미끼로 탈퇴를 만류하는 팝업 등 자동 처리"),
+ (ev["sheet 데모웹하드"],ev["done"]-0.2,"탈퇴 사유까지 Zero-Leak이 입력\n제출 직전 5초 뒤 자동 확정"),
  (ev["done"],ev["accounts"]-0.2,"비밀번호 변경은 온디바이스에서 처리되므로\n유출 위험 방지"),
  (ev["accounts"],ev["csv"]+1.2,"계정 등록: 내보낸 CSV 선택"),
  (ev["csv"]+1.4,ev["home"]-0.2,"기기 안에서 해시로 변환, 원본 파기\n서버로 가지 않습니다"),
- (ev["home"],END,"수백 개의 사이트 비밀번호 변경도\n1시간 안에 가능")]
+ (ev["home"],END,"수백 개 사이트 비밀번호 변경도 1시간 안에\n(동시 처리 확장 시 목표)")]
 steps=[("① 알림",0,ev["risk"]),("② 연쇄 위험",ev["risk"],ev["run"]),("③ Zero-Leak 조치",ev["run"],ev["done"]),("④ 완료 리포트",ev["done"],ev["accounts"]),("⑤ 계정 등록",ev["accounts"],END)]
 for i,(t,a,b) in enumerate(steps): (S/f"step{i}.txt").write_text(t)
 (S/"panel1.txt").write_text("Zero-Leak 시연"); (S/"panel2.txt").write_text("유출 탐지 → 연쇄 위험 → Zero-Leak 조치 → 사용자 확정")
 (S/"panel3.txt").write_text("오른쪽: Zero-Leak이 보는 실제 브라우저 화면\n(비밀번호 칸은 가린 채 번호만 전송)")
 (S/"label.txt").write_text("Zero-Leak 시점 — 빨간 번호 = 클릭 후보 · 검은 사각형 = 비밀번호 칸(가림)")
+(S/"note.txt").write_text("화면 녹화: 규칙(mock) 모드 · 실측 수치는 다음 카드(네이버클라우드 vLLM 주행)")
 def fade(a,b,d=0.35): return f"if(lt(t-{a},{d}),(t-{a})/{d},if(lt({b}-t,{d}),({b}-t)/{d},1))"
 FS=68; Y0=900; Y1=985; YC=942   # 2줄: 윗줄 Y0, 아랫줄 Y1 / 1줄: YC
 def fs(line): return 68 if len(line)<=24 else (56 if len(line)<=30 else 48)
@@ -44,11 +46,12 @@ for i,(a,b,txt) in enumerate(cues):
         draw+=(f",drawtext=fontfile={FONT}:textfile={S}/cue{i}_1.txt:fontsize={fs(lines[1])}:fontcolor=white:x=(w-text_w)/2"
                f":y='{Y1}+22*(1-min(1,(t-{a}-{d2})/0.35))':alpha='{fade(a+d2,b)}':enable='between(t,{a+d2},{b})'")
 stepdraw=""
+STEP_X=[740,870,1060,1330,1540]; STEP_W=[90,150,230,170,150]
 for i,(t,a,b) in enumerate(steps):
-    x=740+i*224
+    x=STEP_X[i]
     stepdraw+=(f",drawtext=fontfile={FONTR}:textfile={S}/step{i}.txt:fontsize=26:fontcolor=0x6E7B84:x={x}:y=44"
                f",drawtext=fontfile={FONT}:textfile={S}/step{i}.txt:fontsize=26:fontcolor=0x9FE3D4:x={x}:y=44:enable='between(t,{a},{b})'"
-               f",drawbox=x={x}:y=84:w=180:h=4:color=0x0E7C6B@0.95:t=fill:enable='between(t,{a},{b})'")
+               f",drawbox=x={x}:y=84:w={STEP_W[i]}:h=4:color=0x0E7C6B@0.95:t=fill:enable='between(t,{a},{b})'")
 vf=(f"[0:v]scale=-2:840[ph];"
     f"[1:v]scale=1120:-2,tpad=stop_mode=clone:stop_duration=150,setpts=PTS+{AG_START}/TB[ag];"
     f"color=c=0x15191D:s=1920x1080:d={END}[bg];"
@@ -58,7 +61,8 @@ vf=(f"[0:v]scale=-2:840[ph];"
     f"drawtext=fontfile={FONTR}:textfile={S}/panel2.txt:fontsize=34:fontcolor=white:x=780:y=400:enable='lt(t,{AG_START})',"
     f"drawtext=fontfile={FONTR}:textfile={S}/panel3.txt:fontsize=30:fontcolor=0xBFD8D5:x=780:y=480:line_spacing=10:enable='lt(t,{AG_START})'[b];"
     f"[b][ag]overlay=720:120:enable='gte(t,{AG_START})'[c];"
-    f"[c]drawtext=fontfile={FONTR}:textfile={S}/label.txt:fontsize=26:fontcolor=0xBFD8D5:x=720:y=850:enable='gte(t,{AG_START})'{stepdraw},"
+    f"[c]drawtext=fontfile={FONTR}:textfile={S}/label.txt:fontsize=26:fontcolor=0xBFD8D5:x=720:y=850:enable='gte(t,{AG_START})*not(between(t,{ev['done']},{ev['accounts']}))',"
+    f"drawtext=fontfile={FONTR}:textfile={S}/note.txt:fontsize=26:fontcolor=0xF2B544:x=720:y=850:enable='between(t,{ev['done']},{ev['accounts']})'{stepdraw},"
     f"drawbox=x=0:y=880:w=1920:h=200:color=black@0.62:t=fill,"
     f"drawbox=x=0:y=877:w='1920*t/{END}':h=4:color=0x0E7C6B@0.95:t=fill{draw}[v]")
 main=S/"main.mp4"
@@ -97,12 +101,12 @@ def card_lines(out,d,eyebrow,title,lines):
              f"drawtext=fontfile={FONTR}:textfile={S}/{out}_{i}.txt:fontsize=38:fontcolor=0xE8ECEA:x=196:y='{436+i*96}+14*(1-min(1,max(0,(t-{s})/0.5)))':alpha='min(1,max(0,(t-{s})/0.5))'")
     vf+=f",fade=t=out:st={d-0.6}:d=0.6"
     subprocess.run(["ffmpeg","-y","-loglevel","error","-f","lavfi","-i",f"color=c=0x0F1A20:s=1920x1080:d={d}:r=30","-vf",vf,"-c:v","libx264","-pix_fmt","yuv420p",str(S/f"{out}.mp4")],check=True)
-card_lines("vlmA",8,"네이버클라우드 GPU 서버 · NVIDIA L4 23GB","VLM과 LLM으로 ‘비밀 정보 변경하기’ 페이지 접근 경로 학습",
+card_lines("vlmA",9,"네이버클라우드 GPU 서버 · NVIDIA L4 23GB","VLM이 ‘비밀번호 변경’ 페이지 경로를 화면만 보고 탐색",
     ["vLLM + Qwen2.5-VL-7B-Instruct-AWQ 서빙, OpenAI 호환 API · GPU 17.2GB 사용",
      "입력: 비밀번호 칸을 가린 PNG + 번호 목록 → 출력: click(n) / fill(n) JSON 하나",
      "응답 0.4~1.2초 (목표 3초) · 게이트웨이가 토큰 확률로 confidence 계산",
      "confidence 0.8 미만 → Claude 승격 · 결제·송금·유지하기 등 금지어는 가드레일 차단"])
-card_lines("vlmC",8,"실측 — 테스트베드 전체 주행 (vllm 경로, 승격 임계값 0.8)","메뉴 이동은 Qwen 단독, 입력은 Claude 승격",
+card_lines("vlmC",9,"실측 — 테스트베드 전체 주행 (vllm 경로, 승격 임계값 0.8)","메뉴 이동은 Qwen 단독, 입력은 Claude 승격",
     ["데모쇼핑 비밀번호 변경 9단계 완료 · 데모웹하드 탈퇴 8단계 완료 (유인 팝업 2회 통과)",
      "메뉴 이동 confidence 0.94~1.00 → Qwen 단독 · 입력 칸 0.42~0.67 → Claude 승격 (17단계 중 6)",
      "전체 37.3초 · 외부 전송 검사 33건 · 비밀번호 평문 전송 0건",

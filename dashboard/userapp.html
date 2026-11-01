@@ -256,7 +256,7 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
 
   <!-- 알림 / 위험 -->
   <section class="screen" id="s-risk">
-    <div class="notice"><b id="noticeTitle">비밀번호가 유출됐습니다</b><span id="noticeSub">텔레그램에 올라온 유출 자료에서 내 계정이 발견됐습니다.</span></div>
+    <div class="notice"><b id="noticeTitle">비밀번호가 유출됐습니다</b><span id="noticeSub">다크웹·텔레그램에 올라온 유출 자료에서 내 계정이 발견됐습니다.</span></div>
     <h2 style="margin-top:4px">같은 비밀번호를 쓴 곳까지 위험합니다</h2>
     <div class="domino" id="domino"></div>
     <details class="rule"><summary>조치는 어떻게 정해지나요?</summary>
@@ -352,10 +352,10 @@ p{font-size:15px;line-height:1.55;color:var(--ink-2)}
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet">
     <div class="grip"></div>
-    <h1 id="sheetTitle">마지막 확인</h1>
-    <p id="sheetSub" style="margin:6px 0 14px">이 단계는 되돌릴 수 없어 직접 확인을 받습니다.</p>
+    <h1 id="sheetTitle">제출 직전</h1>
+    <p id="sheetSub" style="margin:6px 0 14px">그대로 두면 자동으로 제출됩니다.</p>
     <div class="card" style="padding:4px 16px;margin-bottom:14px" id="sheetKv"></div>
-    <button class="btn btn-guard" id="approveBtn">확정</button>
+    <button class="btn btn-guard" id="approveBtn">지금 확정 <span id="autoCnt" style="opacity:.75;font-weight:500">(5초 뒤 자동)</span></button>
     <button class="btn btn-ghost" id="skipBtn">이 사이트는 건너뛰기</button>
   </div>
 
@@ -376,6 +376,7 @@ function show(n){cur=n;screens.forEach(s=>$("#s-"+s).classList.toggle("on",s===n
   document.querySelectorAll(".tabbar [data-tab]").forEach(t=>t.classList.toggle("on",t.dataset.tab===TAB_OF[n]))}
 function pushAlert(on){$("#push").classList.toggle("on",on);$("#pushVeil").classList.toggle("on",on);document.querySelector(".phone").classList.toggle("alerted",on)}
 const COLORS={"데모쇼핑":"#FF5A36","데모웹하드":"#5A48E3"};
+const AUTO_APPROVE_S=5;   // 제출 직전 시트: 이 시간 안에 멈추지 않으면 자동 확정 (사용자 개입 최소화)
 const ic=s=>`<div class="site-ic" style="background:${COLORS[s]||'#6B7680'}">${s.slice(0,1)}</div>`;
 const actKo=a=>a==="change"?"비밀번호 변경":"서비스 탈퇴";
 setInterval(()=>{const d=new Date();$("#clock").textContent=d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")},1000);
@@ -425,7 +426,11 @@ function renderDone(d){
 }
 function sheet(on,p){
   $("#sheet").classList.toggle("on",on);$("#scrim").classList.toggle("on",on);
-  if(on&&p){$("#sheetTitle").textContent=`${p.site} 최종 확인`;$("#sheetSub").textContent=p.reason.replace("최종 확정 전 승인 필요","을 누르면 되돌릴 수 없어 직접 확인을 받습니다").replace(/'/g,"‘");
+  if(!on&&window._autoT){clearInterval(window._autoT);window._autoT=null}
+  if(on&&p){$("#sheetTitle").textContent=`${p.site} 제출 직전`;$("#sheetSub").textContent=p.reason.replace(" 최종 확정 전 승인 필요","을 제출합니다. 그대로 두면 자동으로 확정되고, 멈추려면 건너뛰기를 누르세요.").replace(/'/g,"‘");
+    let left=AUTO_APPROVE_S; $("#autoCnt").textContent=`(${left}초 뒤 자동)`;
+    if(window._autoT)clearInterval(window._autoT);
+    window._autoT=setInterval(async()=>{left--; if(left<=0){clearInterval(window._autoT);window._autoT=null;window._justApproved=Date.now();await api("/api/approve",{site:p.site});sheet(false);return}$("#autoCnt").textContent=`(${left}초 뒤 자동)`},1000);
     const r=(window._last?.risk||[]).find(x=>x.site===p.site)||{};
     $("#sheetKv").innerHTML=`<div class="kv"><span>할 일</span><b>${actKo(r.action||"change")}</b></div><div class="kv"><span>계정</span><b>${r.email||""}</b></div>${r.action==="withdraw"?'<div class="kv"><span>보관 데이터</span><b>탈퇴 후 7일 뒤 삭제</b></div>':'<div class="kv"><span>새 비밀번호</span><b>자동 생성 · 기기에만 저장</b></div>'}`;
     $("#approveBtn").dataset.site=p.site}
@@ -437,7 +442,7 @@ async function tick(){
   renderHome(d);
   if(cur==="risk") renderRisk(d);
   if(cur==="run"){renderRun(d);
-    if(d.pending&&!$("#sheet").classList.contains("on")) sheet(true,d.pending);
+    if(d.pending&&!$("#sheet").classList.contains("on")&&Date.now()-(window._justApproved||0)>3000) sheet(true,d.pending);
     if(!d.pending) sheet(false);
     const s=d.state?.summary; if(!d.running&&s&&(s.changed+s.withdrawn+(s.skipped||0))>=s.sites&&s.sites>0&&!doneShown){doneShown=true;setTimeout(()=>{renderDone(d);show("done")},900)}
   }
@@ -447,8 +452,8 @@ $("#laterBtn").onclick=()=>show("home");
 $("#domino").addEventListener("click",async e=>{const b=e.target.closest("button[data-action]");if(!b)return;
   const r=await api("/api/action",{site:b.dataset.site,action:b.dataset.action});if(r.ok){window._last.risk=r.risk;renderRisk(window._last)}});
 $("#protectBtn").onclick=async()=>{doneShown=false;$("#runCards").innerHTML="";$("#eye").innerHTML='<div class="empty">곧 시작합니다</div>';$("#runLog").innerHTML="";await api("/api/protect",{});show("run")};
-$("#approveBtn").onclick=async()=>{await api("/api/approve",{site:$("#approveBtn").dataset.site});sheet(false)};
-$("#skipBtn").onclick=async()=>{await api("/api/skip",{site:$("#approveBtn").dataset.site});sheet(false)};
+$("#approveBtn").onclick=async()=>{window._justApproved=Date.now();await api("/api/approve",{site:$("#approveBtn").dataset.site});sheet(false)};
+$("#skipBtn").onclick=async()=>{window._justApproved=Date.now();await api("/api/skip",{site:$("#approveBtn").dataset.site});sheet(false)};
 $("#homeBtn").onclick=()=>show("home");
 $("#resetBtn").onclick=async()=>{await api("/api/reset",{});doneShown=false;show("home");pushAlert(true)};
 $("#pushGo").onclick=async()=>{pushAlert(false);await api("/api/detect",{});const d=await api("/api/state");window._last=d;renderRisk(d);show("risk")};
