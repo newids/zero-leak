@@ -13,17 +13,22 @@ with sync_playwright() as p:
     ctx=b.new_context(viewport={"width":1080,"height":1920},record_video_dir=str(REC),record_video_size={"width":1080,"height":1920})
     pg=ctx.new_page(); t0=time.time()
     def mark(name): ev.append({"t":round(time.time()-t0,2),"e":name}); print(f"{ev[-1]['t']:6.1f}s {name}")
+    def scroll_to(sel, wait=1.3):
+        # 창(window)이 아니라 앱 화면(.screen) 안에서만 부드럽게 스크롤 — 폰 프레임은 제자리
+        pg.locator(sel).first.evaluate("e=>{const sc=e.closest('.screen');const r=e.getBoundingClientRect(),s=sc.getBoundingClientRect();const k=s.width/sc.clientWidth;sc.scrollTo({top:sc.scrollTop+((r.top-s.top)-(s.height-r.height)/2)/k,behavior:'smooth'})}"); pg.wait_for_timeout(int(wait*1000)); mark("scroll "+sel)
     def click(sel, hold=1.0):
-        el=pg.locator(sel).first; bb=el.bounding_box()
+        el=pg.locator(sel).first
+        if not el.evaluate("e=>{const r=e.getBoundingClientRect();return r.top>=60&&r.bottom<=1800}"): scroll_to(sel)
+        bb=el.bounding_box()
         x,y=bb["x"]+bb["width"]/2, bb["y"]+bb["height"]/2
         pg.evaluate(RIPPLE,[x,y]); pg.wait_for_timeout(int(hold*1000)); el.click(); mark("click "+sel); pg.evaluate(RIPPLE,[x,y])
-    pg.goto("http://localhost:8502"); pg.add_style_tag(content="body{align-items:flex-start;padding-top:86px} .phone{transform:scale(2);transform-origin:top center}"); pg.wait_for_timeout(300)
+    pg.goto("http://localhost:8502"); pg.add_style_tag(content="html,body{overflow:hidden} body{align-items:flex-start;padding-top:86px} .phone{transform:scale(2);transform-origin:top center}"); pg.wait_for_timeout(300)
     pg.click("#resetBtn", force=True); pg.wait_for_timeout(1500); mark("push")
     pg.wait_for_timeout(5000)
     click("#pushGo"); pg.wait_for_timeout(2500); mark("risk")
-    pg.wait_for_timeout(5500)
-    click(".rule summary"); pg.wait_for_timeout(5500)
-    click("#protectBtn"); mark("run"); t_run=time.time()
+    pg.wait_for_timeout(4500)
+    scroll_to(".rule"); click(".rule summary"); pg.wait_for_timeout(4500)
+    scroll_to("#protectBtn"); click("#protectBtn"); mark("run"); t_run=time.time()
     while time.time()-t_run<150:
         pg.wait_for_timeout(500)
         if pg.locator("#sheet.on").count():
