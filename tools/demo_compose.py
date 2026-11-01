@@ -76,10 +76,36 @@ card("intro.mp4",4,"intro1.txt","intro2.txt","intro3.txt"); card("outro.mp4",5.5
 (S/"mid1.txt").write_text("유출 1건 → 2개 사이트 조치 완료"); (S/"mid2.txt").write_text("변경 1 · 탈퇴 1 · 사용자 확정 2회 · 비밀번호 평문 전송 0건")
 (S/"mid3.txt").write_text("다음 — 계정은 어떻게 등록하나?")
 card("mid.mp4",4.5,"mid1.txt","mid2.txt","mid3.txt",s1=84)
+# 네이버클라우드 GPU 서버 — VLM 화면 판단 (실측 기록: docs/zero-leak 코드 분석 메모.md)
+def card_lines(out,d,eyebrow,title,lines):
+    (S/f"{out}_e.txt").write_text(eyebrow); (S/f"{out}_t.txt").write_text(title)
+    vf=(f"drawtext=fontfile={FONTR}:textfile={S}/{out}_e.txt:fontsize=30:fontcolor=0x9FE3D4:x=160:y=200:alpha='min(1,t/0.5)',"
+        f"drawtext=fontfile={FONT}:textfile={S}/{out}_t.txt:fontsize=72:fontcolor=white:x=160:y='250-16*(1-min(1,t/0.6))':alpha='min(1,t/0.6)'")
+    for i,l in enumerate(lines):
+        (S/f"{out}_{i}.txt").write_text(l); s=0.9+i*0.55
+        vf+=(f",drawbox=x=160:y={430+i*96}:w=10:h=56:color=0x0E7C6B@0.95:t=fill:enable='gte(t,{s})',"
+             f"drawtext=fontfile={FONTR}:textfile={S}/{out}_{i}.txt:fontsize=38:fontcolor=0xE8ECEA:x=196:y='{436+i*96}+14*(1-min(1,max(0,(t-{s})/0.5)))':alpha='min(1,max(0,(t-{s})/0.5))'")
+    vf+=f",fade=t=out:st={d-0.6}:d=0.6"
+    subprocess.run(["ffmpeg","-y","-loglevel","error","-f","lavfi","-i",f"color=c=0x0F1A20:s=1920x1080:d={d}:r=30","-vf",vf,"-c:v","libx264","-pix_fmt","yuv420p",str(S/f"{out}.mp4")],check=True)
+card_lines("vlmA",6,"네이버클라우드 GPU 서버 · NVIDIA L4 23GB","클라우드의 일: 가려진 화면에서 번호 하나를 고른다",
+    ["vLLM + Qwen2.5-VL-7B(AWQ) 서빙, OpenAI 호환 API · GPU 17.2GB 사용",
+     "입력: 비밀번호 칸을 가린 PNG + 번호 목록 → 출력: click(n) / fill(n) JSON 하나",
+     "응답 0.4~1.2초 (목표 3초) · 게이트웨이가 토큰 확률로 confidence 계산",
+     "confidence 0.8 미만 → Claude 승격 · 결제·송금·유지하기 등 금지어는 가드레일 차단"])
+card_lines("vlmB",6,"비밀번호 변경·탈퇴 화면 처리 — 서버에 적용한 규칙","모델이 헷갈리던 자리를 규칙으로 고정",
+    ["빈 입력란 먼저 채우기 · 로그인 화면이면 로그인부터",
+     "‘재설정 · 찾기’는 분실용 → 제외 · ‘정보 변경 · 계정 정보 · 보안’은 안전한 경로",
+     "입력이 끝난 칸은 (입력됨) 표시 — 값은 보내지 않음 · 같은 요소 2회 반복이면 승격",
+     "유인 팝업: ‘혜택을 유지하고 계속 이용하기’는 금지어, ‘포기하고 떠나기’ 선택"])
+card_lines("vlmC",6,"실측 — 테스트베드 전체 주행 (vllm 경로, 승격 임계값 0.8)","메뉴 이동은 Qwen 단독, 입력은 Claude 승격",
+    ["데모쇼핑 비밀번호 변경 9단계 완료 · 데모웹하드 탈퇴 8단계 완료 (유인 팝업 2회 통과)",
+     "메뉴 이동 confidence 0.94~1.00 → Qwen 단독 · 입력 칸 0.42~0.67 → Claude 승격 (17단계 중 6)",
+     "전체 37.3초 · 외부 전송 검사 33건 · 비밀번호 평문 전송 0건",
+     "실제 전자책 서점에서도 로그인 → 내 정보 관리 → 비밀번호 변경 14단계 성공 (본인 계정)"])
 tcut=ev["accounts"]-0.4
 subprocess.run(["ffmpeg","-y","-loglevel","error","-i",str(main),"-t",str(tcut),"-c:v","libx264","-pix_fmt","yuv420p",str(S/"mainA.mp4")],check=True)
 subprocess.run(["ffmpeg","-y","-loglevel","error","-ss",str(tcut),"-i",str(main),"-c:v","libx264","-pix_fmt","yuv420p",str(S/"mainB.mp4")],check=True)
-(S/"concat.txt").write_text(f"file '{S}/intro.mp4'\nfile '{S}/mainA.mp4'\nfile '{S}/mid.mp4'\nfile '{S}/mainB.mp4'\nfile '{S}/outro.mp4'\n")
+(S/"concat.txt").write_text(f"file '{S}/intro.mp4'\nfile '{S}/mainA.mp4'\nfile '{S}/vlmA.mp4'\nfile '{S}/vlmB.mp4'\nfile '{S}/vlmC.mp4'\nfile '{S}/mid.mp4'\nfile '{S}/mainB.mp4'\nfile '{S}/outro.mp4'\n")
 final=S/"zero-leak_demo_100s.mp4"
 subprocess.run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",str(S/"concat.txt"),"-c:v","libx264","-pix_fmt","yuv420p","-movflags","+faststart",str(final)],check=True)
 print(subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","csv=p=0",str(final)],capture_output=True,text=True).stdout)
