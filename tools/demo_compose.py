@@ -10,20 +10,20 @@ cues=[(0,ev["click #pushGo"]-0.3,"텔레그램에 유출 덤프 등장\n내 계�
  (ev["click #pushGo"],ev["risk"]+3.2,"앱이 알림을 보냅니다"),
  (ev["risk"]+3.4,ev["scroll .rule"]-0.2,"쇼핑몰: 유출과 그대로 일치\n웹하드: 끝 글자만 다른 변형"),
  (ev["scroll .rule"],ev["scroll #protectBtn"]-0.2,"조치 기준은 앱에서 바로 확인\n변경·탈퇴는 사용자가 바꿀 수 있음"),
- (ev["scroll #protectBtn"],ev["run"]+5.5,"에이전트가 쇼핑몰에 로그인"),
+ (ev["scroll #protectBtn"],ev["run"]+5.5,"Zero-Leak이 쇼핑몰에 로그인"),
  (ev["run"]+5.7,ev["sheet 데모쇼핑"]-0.2,"검은 사각형 = 비밀번호 칸\n클라우드는 이 화면만 받습니다"),
  (ev["sheet 데모쇼핑"],ev["click #approveBtn"]+1.2,"되돌릴 수 없는 제출 직전\n사용자가 확정합니다"),
  (ev["click #approveBtn"]+1.4,ev["sheet 데모웹하드"]-0.2,"웹하드: 유인 버튼 두 번 통과\n‘혜택 유지’ 대신 ‘포기하고 떠나기’"),
- (ev["sheet 데모웹하드"],ev["done"]-0.2,"탈퇴 사유까지 에이전트가 입력\n마지막 확정은 사용자"),
+ (ev["sheet 데모웹하드"],ev["done"]-0.2,"탈퇴 사유까지 Zero-Leak이 입력\n마지막 확정은 사용자"),
  (ev["done"],ev["accounts"]-0.2,"변경 1 · 탈퇴 1\n외부로 나간 비밀번호 0건"),
  (ev["accounts"],ev["csv"]+1.2,"계정 등록: 내보낸 CSV 선택"),
  (ev["csv"]+1.4,ev["home"]-0.2,"기기 안에서 해시로 변환, 원본 파기\n서버로 가지 않습니다"),
- (ev["home"],END,"복잡한 일은 에이전트가,\n확정은 사용자가.")]
-steps=[("① 알림",0,ev["risk"]),("② 연쇄 위험",ev["risk"],ev["run"]),("③ 에이전트 조치",ev["run"],ev["done"]),("④ 완료 리포트",ev["done"],ev["accounts"]),("⑤ 계정 등록",ev["accounts"],END)]
+ (ev["home"],END,"복잡한 일은 Zero-Leak이,\n확정은 사용자가.")]
+steps=[("① 알림",0,ev["risk"]),("② 연쇄 위험",ev["risk"],ev["run"]),("③ Zero-Leak 조치",ev["run"],ev["done"]),("④ 완료 리포트",ev["done"],ev["accounts"]),("⑤ 계정 등록",ev["accounts"],END)]
 for i,(t,a,b) in enumerate(steps): (S/f"step{i}.txt").write_text(t)
-(S/"panel1.txt").write_text("Zero-Leak 시연"); (S/"panel2.txt").write_text("유출 탐지 → 연쇄 위험 → 에이전트 조치 → 사용자 확정")
-(S/"panel3.txt").write_text("오른쪽: 에이전트가 보는 실제 브라우저 화면\n(비밀번호 칸은 가린 채 번호만 전송)")
-(S/"label.txt").write_text("에이전트 시점 — 빨간 번호 = 클릭 후보 · 검은 사각형 = 비밀번호 칸(가림)")
+(S/"panel1.txt").write_text("Zero-Leak 시연"); (S/"panel2.txt").write_text("유출 탐지 → 연쇄 위험 → Zero-Leak 조치 → 사용자 확정")
+(S/"panel3.txt").write_text("오른쪽: Zero-Leak이 보는 실제 브라우저 화면\n(비밀번호 칸은 가린 채 번호만 전송)")
+(S/"label.txt").write_text("Zero-Leak 시점 — 빨간 번호 = 클릭 후보 · 검은 사각형 = 비밀번호 칸(가림)")
 def fade(a,b,d=0.35): return f"if(lt(t-{a},{d}),(t-{a})/{d},if(lt({b}-t,{d}),({b}-t)/{d},1))"
 FS=68; Y0=900; Y1=985; YC=942   # 2줄: 윗줄 Y0, 아랫줄 Y1 / 1줄: YC
 draw=""
@@ -62,7 +62,7 @@ vf=(f"[0:v]scale=-2:840[ph];"
     f"drawbox=x=0:y=877:w='1920*t/{END}':h=4:color=0x0E7C6B@0.95:t=fill{draw}[v]")
 main=S/"main.mp4"
 subprocess.run(["ffmpeg","-y","-loglevel","error","-i",PH,"-i",AG,"-filter_complex",vf,"-map","[v]","-t",str(END),"-r","30","-c:v","libx264","-pix_fmt","yuv420p","-preset","medium",str(main)],check=True)
-(S/"intro1.txt").write_text("Zero-Leak"); (S/"intro2.txt").write_text("유출된 비밀번호 탐지부터 변경·탈퇴 에이전트까지")
+(S/"intro1.txt").write_text("Zero-Leak"); (S/"intro2.txt").write_text("유출된 비밀번호 탐지부터 변경·탈퇴까지, Zero-Leak이 직접")
 (S/"intro3.txt").write_text("코디세이 AI 해커톤 2026 · 시연 영상")
 (S/"outro1.txt").write_text("“내 비밀번호는 내 기기 밖으로 나가지 않습니다”"); (S/"outro2.txt").write_text("변경 1 · 탈퇴 1 · 비밀번호 평문 전송 0건")
 (S/"outro3.txt").write_text("github.com/newids/zero-leak")
