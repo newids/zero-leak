@@ -243,7 +243,7 @@ def guardrail_rules(action: Action, scr: Screen) -> tuple[bool, str]:
 
 # ---------------------------------------------------------------- public API
 class LLM:
-    PROMOTE_BELOW = float(os.getenv("PROMOTE_BELOW", "0.6"))   # 신뢰도가 이보다 낮으면 Claude 로 승격 (.env 로 조정)
+    PROMOTE_BELOW = float(os.getenv("PROMOTE_BELOW", "0.8"))   # 신뢰도가 이보다 낮으면 Claude 로 승격 (.env 로 조정)
     REPEAT_LIMIT = 2        # 같은 경로에서 같은 요소를 이 횟수 이상 다뤘는데 또 고르면 막힌 것으로 본다
 
     def __init__(self, provider: str | None = None):

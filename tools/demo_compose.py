@@ -110,7 +110,7 @@ card_lines("vlmC",9,"실측 — 테스트베드 전체 주행 (vllm 경로, 승�
     ["데모쇼핑 비밀번호 변경 9단계 완료 · 데모웹하드 탈퇴 8단계 완료 (유인 팝업 2회 통과)",
      "메뉴 이동 confidence 0.94~1.00 → Qwen 단독 · 입력 칸 0.42~0.67 → Claude 승격 (17단계 중 6)",
      "전체 37.3초 · 외부 전송 검사 33건 · 비밀번호 평문 전송 0건",
-     "실제 전자책 서점에서도 로그인 → 내 정보 관리 → 비밀번호 변경 14단계 성공 (본인 계정)"])
+     "실제 전자책 서점에서도 로그인 → 내 정보 관리 → 비밀번호 변경 12단계·63초 성공 (본인 계정)"])
 tcut=ev["accounts"]-0.4
 subprocess.run(["ffmpeg","-y","-loglevel","error","-i",str(main),"-t",str(tcut),"-c:v","libx264","-pix_fmt","yuv420p",str(S/"mainA.mp4")],check=True)
 subprocess.run(["ffmpeg","-y","-loglevel","error","-ss",str(tcut),"-i",str(main),"-c:v","libx264","-pix_fmt","yuv420p",str(S/"mainB.mp4")],check=True)
